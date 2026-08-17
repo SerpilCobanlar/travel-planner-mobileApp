@@ -10,28 +10,28 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('is_public', true);
+
+        if (error) {
+          throw error;
+        }
+
+        setTrips(data || []);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchTrips();
   }, []);
-
-  const fetchTrips = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('is_public', true);
-
-      if (error) {
-        throw error;
-      }
-
-      setTrips(data || []);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const renderTrip = ({ item }: { item: any }) => (
     <TripCard trip={item} />
