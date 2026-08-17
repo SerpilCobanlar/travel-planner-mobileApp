@@ -1,38 +1,28 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet } from 'react-native';
+import Mapbox, { initializeMapbox } from '../lib/mapbox';
+
+// Initialize Mapbox with token from env variables
+initializeMapbox();
 
 export default function DiscoverScreen() {
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.headerTitle}>Discover</Text>
-        <Text style={styles.description}>Keşfedilecek yeni yerler yakında burada olacak.</Text>
-      </View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <Mapbox.MapView style={styles.map}>
+        <Mapbox.Camera
+          zoomLevel={10}
+          centerCoordinate={[28.9784, 41.0082]} // Istanbul
+        />
+      </Mapbox.MapView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
   container: {
     flex: 1,
-    padding: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 10,
+  map: {
+    flex: 1,
   },
-  description: {
-    fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
-  }
 });
