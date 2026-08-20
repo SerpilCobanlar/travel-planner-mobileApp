@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '../lib/supabaseClient';
-import TripCard from '../components/TripCard';
+import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { supabase } from '@/lib/supabaseClient';
+import TripCard from '@/components/TripCard';
+import { Screen } from '@/components/ui/Screen';
+import { ThemedText } from '@/components/themed-text';
+import { useTranslation } from '@/localization';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function HomeScreen() {
   const [trips, setTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { t } = useTranslation();
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -41,27 +47,31 @@ export default function HomeScreen() {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>
-          Henüz herkese açık bir gezi planı bulunmuyor.
-        </Text>
+        <ThemedText style={styles.emptyText} themeColor="textSecondary">
+          {t('common.emptyTrips')}
+        </ThemedText>
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <Screen safeArea padded={false}>
       <View style={styles.container}>
-        <Text style={styles.headerTitle}>Herkese Açık Geziler</Text>
+        <ThemedText style={styles.headerTitle} type="title">
+          {t('common.publicTrips')}
+        </ThemedText>
         
         {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Bir hata oluştu: {error}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
+            <ThemedText style={styles.errorText} themeColor="error">
+              {t('auth.error')}: {error}
+            </ThemedText>
           </View>
         )}
 
         {loading && trips.length === 0 ? (
           <View style={styles.center}>
-            <ActivityIndicator size="large" color="#4F46E5" />
+            <ActivityIndicator size="large" color={theme.primary} />
           </View>
         ) : (
           <FlatList
@@ -75,15 +85,11 @@ export default function HomeScreen() {
           />
         )}
       </View>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
   container: {
     flex: 1,
     padding: 16,
@@ -95,8 +101,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
     marginBottom: 20,
     marginTop: 10,
     textAlign: 'center',
@@ -115,19 +119,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
     textAlign: 'center',
     fontStyle: 'italic',
     lineHeight: 24,
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 14,
   },
 });
+

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Mapbox, { initializeMapbox } from '../lib/mapbox';
+import Mapbox, { initializeMapbox } from '@/lib/mapbox';
 
 // Initialize Mapbox with token from env variables
 initializeMapbox();

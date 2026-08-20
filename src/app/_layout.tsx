@@ -1,18 +1,44 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
-
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AppLoader } from '@/components/ui/AppLoader';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+function RootLayoutNav() {
+  const { activeTheme, isReady } = usePreferences();
+  const { session, isLoading } = useAuth();
+
+  if (isLoading || !isReady) {
+    return <AppLoader />;
+  }
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={activeTheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
-      <AppTabs />
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* @ts-ignore - Some TS versions might not have Stack.Protected type natively if it's unstable or custom */}
+        <Stack.Protected guard={!session}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+
+        {/* @ts-ignore */}
+        <Stack.Protected guard={!!session}>
+          <Stack.Screen name="(tabs)" />
+        </Stack.Protected>
+      </Stack>
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <PreferencesProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </PreferencesProvider>
   );
 }
