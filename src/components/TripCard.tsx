@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/Button';
@@ -11,9 +11,10 @@ type Trip = Database['public']['Tables']['trips']['Row'];
 
 interface TripCardProps {
   trip: Trip;
+  onPress?: () => void;
 }
 
-export default function TripCard({ trip }: TripCardProps) {
+export default function TripCard({ trip, onPress }: TripCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -27,7 +28,7 @@ export default function TripCard({ trip }: TripCardProps) {
   const isPublicText = trip.is_public ? t('trip.isPublic') : t('trip.isPrivate');
   const badgeColor = trip.is_public ? theme.primary : theme.textSecondary;
 
-  return (
+  const CardContent = (
     <Card style={styles.card}>
       <View style={styles.header}>
         <ThemedText style={styles.title} type="subtitle" numberOfLines={1}>
@@ -51,12 +52,22 @@ export default function TripCard({ trip }: TripCardProps) {
       </View>
 
       <Button
-        title="Detayları Gör"
-        onPress={() => console.log('Detayları Gör tıklandı')}
+        title={t('trip.details')}
+        onPress={onPress}
         style={styles.button}
       />
     </Card>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+        {CardContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return CardContent;
 }
 
 const styles = StyleSheet.create({

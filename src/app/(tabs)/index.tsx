@@ -69,7 +69,7 @@ export default function HomeScreen() {
   );
 
   const renderTrip = ({ item }: { item: Trip }) => (
-    <TripCard trip={item} />
+    <TripCard trip={item} onPress={() => router.push(`/trips/${item.id}`)} />
   );
 
   const renderEmptyComponent = () => {
