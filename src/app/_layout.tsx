@@ -29,6 +29,8 @@ function RootLayoutNav() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="trips/new" />
           <Stack.Screen name="trips/[id]" />
+          <Stack.Screen name="trips/[id]/days/[dayId]" />
+          <Stack.Screen name="trips/[id]/days/[dayId]/new-item" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

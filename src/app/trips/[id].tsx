@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { useTranslation } from '@/localization';
@@ -14,6 +14,7 @@ type TripDay = Database['public']['Tables']['trip_days']['Row'];
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -138,7 +139,12 @@ export default function TripDetailScreen() {
       <FlatList
         data={days}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <TripDayCard day={item} />}
+        renderItem={({ item }) => (
+          <TripDayCard
+            day={item}
+            onPress={() => router.push(`/trips/${id}/days/${item.id}`)}
+          />
+        )}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}

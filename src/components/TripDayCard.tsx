@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { ThemedText } from '@/components/themed-text';
 import type { Database } from '@/types/database.types';
@@ -10,9 +10,10 @@ type TripDay = Database['public']['Tables']['trip_days']['Row'];
 
 interface TripDayCardProps {
   day: TripDay;
+  onPress?: () => void;
 }
 
-export default function TripDayCard({ day }: TripDayCardProps) {
+export default function TripDayCard({ day, onPress }: TripDayCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -23,7 +24,7 @@ export default function TripDayCard({ day }: TripDayCardProps) {
     return `${d}.${m}.${y}`;
   };
 
-  return (
+  const CardContent = (
     <Card style={styles.card}>
       <View style={styles.header}>
         <ThemedText style={styles.title} type="subtitle">
@@ -54,6 +55,16 @@ export default function TripDayCard({ day }: TripDayCardProps) {
       </View>
     </Card>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+        {CardContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return CardContent;
 }
 
 const styles = StyleSheet.create({
