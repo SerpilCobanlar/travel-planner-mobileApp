@@ -27,6 +27,7 @@ function RootLayoutNav() {
         {/* @ts-ignore */}
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="trips/new" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>
