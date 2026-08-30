@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Alert } from 'react-native';
 import { Card } from '@/components/ui/Card';
 import { ThemedText } from '@/components/themed-text';
 import type { Database } from '@/types/database.types';
@@ -10,15 +10,35 @@ type TripItem = Database['public']['Tables']['trip_items']['Row'];
 
 interface TripItemCardProps {
   item: TripItem;
+  canEdit?: boolean;
+  onEdit?: (item: TripItem) => void;
+  onDelete?: (item: TripItem) => void;
 }
 
-export default function TripItemCard({ item }: TripItemCardProps) {
+export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripItemCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
   // Try to translate type, fallback to raw string
   const typeTranslationKey = `item.types.${item.type}` as TranslationKey;
   const translatedType = t(typeTranslationKey);
+
+  const handleDelete = () => {
+    Alert.alert(
+      t('item.deletePlan'),
+      t('item.deleteConfirm'),
+      [
+        { text: t('item.cancel'), style: 'cancel' },
+        {
+          text: t('item.delete'),
+          style: 'destructive',
+          onPress: () => {
+            if (onDelete) onDelete(item);
+          }
+        },
+      ]
+    );
+  };
 
   return (
     <Card style={styles.card}>
@@ -28,6 +48,18 @@ export default function TripItemCard({ item }: TripItemCardProps) {
             {translatedType}
           </ThemedText>
         </View>
+
+        {canEdit && (
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={() => onEdit && onEdit(item)} style={styles.actionButton}>
+              <ThemedText style={styles.actionText}>{t('item.edit')}</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+              <ThemedText style={[styles.actionText, { color: theme.error }]}>{t('item.delete')}</ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       
       <View style={styles.titleRow}>
@@ -58,6 +90,8 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
   },
   badge: {
@@ -68,6 +102,19 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   titleRow: {
     flexDirection: 'row',

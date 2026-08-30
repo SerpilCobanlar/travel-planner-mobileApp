@@ -31,6 +31,7 @@ function RootLayoutNav() {
           <Stack.Screen name="trips/[id]" />
           <Stack.Screen name="trips/[id]/days/[dayId]" />
           <Stack.Screen name="trips/[id]/days/[dayId]/new-item" />
+          <Stack.Screen name="trips/[id]/days/[dayId]/items/[itemId]/edit" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

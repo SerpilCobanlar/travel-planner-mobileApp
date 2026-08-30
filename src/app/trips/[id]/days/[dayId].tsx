@@ -108,6 +108,25 @@ export default function DayDetailScreen() {
     }, [fetchData])
   );
 
+  const handleDeleteItem = async (item: TripItem) => {
+    try {
+      const { error: deleteError } = await supabase
+        .from('trip_items')
+        .delete()
+        .eq('id', item.id)
+        .eq('trip_id', id)
+        .eq('trip_day_id', dayId);
+
+      if (deleteError) throw deleteError;
+
+      // Optimistic remove
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+    } catch (err) {
+      console.error('DELETE_TRIP_ITEM_ERROR', err);
+      setError(t('item.deleteError'));
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-');
@@ -201,7 +220,14 @@ export default function DayDetailScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <TripItemCard item={item} />}
+          renderItem={({ item }) => (
+            <TripItemCard
+              item={item}
+              canEdit={canEdit}
+              onEdit={(i) => router.push(`/trips/${id}/days/${dayId}/items/${i.id}/edit`)}
+              onDelete={handleDeleteItem}
+            />
+          )}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmptyComponent}
           contentContainerStyle={styles.listContent}
