@@ -11,6 +11,7 @@ import TripDayCard from '@/components/TripDayCard';
 
 type Trip = Database['public']['Tables']['trips']['Row'];
 type TripDay = Database['public']['Tables']['trip_days']['Row'];
+type TripItem = Database['public']['Tables']['trip_items']['Row'];
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,6 +21,7 @@ export default function TripDetailScreen() {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [days, setDays] = useState<TripDay[]>([]);
+  const [allItems, setAllItems] = useState<TripItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +57,18 @@ export default function TripDetailScreen() {
       if (daysError) throw daysError;
 
       setDays(daysData || []);
+
+      // Fetch Items
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('trip_items')
+        .select('*')
+        .eq('trip_id', id)
+        .order('start_at', { ascending: true, nullsFirst: false })
+        .order('sort_order', { ascending: true });
+
+      if (itemsError) throw itemsError;
+
+      setAllItems(itemsData || []);
     } catch (err: any) {
       console.error('TRIP_DETAIL_FETCH_ERROR', err);
       setError(t('trip.fetchError'));
@@ -142,6 +156,7 @@ export default function TripDetailScreen() {
         renderItem={({ item }) => (
           <TripDayCard
             day={item}
+            items={allItems.filter((i) => i.trip_day_id === item.id)}
             onPress={() => router.push(`/trips/${id}/days/${item.id}`)}
           />
         )}

@@ -38,6 +38,7 @@ export function TextInput({
       
       <View style={[
         styles.inputContainer,
+        props.multiline && styles.multilineContainer,
         {
           backgroundColor: theme.backgroundElement,
           borderColor: error ? theme.error : (isFocused ? theme.primary : theme.border),
@@ -46,6 +47,7 @@ export function TextInput({
         <RNTextInput
           style={[
             styles.input,
+            props.multiline && styles.multilineInput,
             { color: theme.text },
             style
           ] as any}
@@ -102,6 +104,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     height: '100%',
+  },
+  multilineContainer: {
+    height: 'auto',
+    minHeight: 100,
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+  },
+  multilineInput: {
+    height: 'auto',
+    minHeight: 76, // 100 - 24 padding
+    textAlignVertical: 'top',
   },
   eyeIcon: {
     padding: 4,

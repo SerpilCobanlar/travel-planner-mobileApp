@@ -13,9 +13,10 @@ interface TripItemCardProps {
   canEdit?: boolean;
   onEdit?: (item: TripItem) => void;
   onDelete?: (item: TripItem) => void;
+  onShowMap?: (item: TripItem) => void;
 }
 
-export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripItemCardProps) {
+export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMap }: TripItemCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -71,26 +72,7 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripIt
               {translatedType}
             </ThemedText>
           </View>
-          {item.latitude && item.longitude && (
-            <View style={[styles.badge, { backgroundColor: theme.primary + '10' }]}>
-              <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
-                📍 {t('item.locationAdded')}
-              </ThemedText>
-            </View>
-          )}
         </View>
-
-        {canEdit && (
-          <View style={styles.actions}>
-            <TouchableOpacity onPress={() => onEdit && onEdit(item)} style={styles.actionButton}>
-              <ThemedText style={styles.actionText}>{t('item.edit')}</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
-              <ThemedText style={[styles.actionText, { color: theme.error }]}>{t('item.delete')}</ThemedText>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
 
       <View style={styles.titleRow}>
@@ -110,6 +92,41 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripIt
           {item.notes}
         </ThemedText>
       ) : null}
+
+      {/* Footer for Metadata and Actions */}
+      {((item.latitude && item.longitude) || canEdit) && (
+        <View style={styles.footer}>
+          <View style={styles.footerLeft}>
+            {item.latitude && item.longitude && (
+              <View style={[styles.badge, { backgroundColor: theme.primary + '10' }]}>
+                <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
+                  📍 {t('item.locationAdded')}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.actions}>
+            {item.latitude !== null && item.longitude !== null && onShowMap && (
+              <TouchableOpacity onPress={() => onShowMap(item)} style={styles.actionButton}>
+                <ThemedText style={[styles.actionText, { color: theme.primary }]}>{t('trip.showOnMap')}</ThemedText>
+              </TouchableOpacity>
+            )}
+
+            {canEdit && (
+              <>
+                <TouchableOpacity onPress={() => onEdit && onEdit(item)} style={styles.actionButton}>
+                  <ThemedText style={styles.actionText}>{t('item.edit')}</ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+                  <ThemedText style={[styles.actionText, { color: theme.error }]}>{t('item.delete')}</ThemedText>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      )}
     </Card>
   );
 }
@@ -152,15 +169,31 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    flex: 1,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingVertical: 4,
   },
   actionText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e5e5e5', // we can rely on theme in a more complex setup, but hairlineWidth is subtle
+  },
+  footerLeft: {
+    marginRight: 8,
   },
   titleRow: {
     flexDirection: 'row',

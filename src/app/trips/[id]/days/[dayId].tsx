@@ -137,6 +137,8 @@ export default function DayDetailScreen() {
   const renderHeader = () => {
     if (!trip || !day) return null;
 
+    const hasLocations = items.some((i) => i.latitude !== null && i.longitude !== null);
+
     return (
       <View style={styles.headerContainer}>
         <ThemedText style={styles.tripTitle} type="default" themeColor="textSecondary">
@@ -162,6 +164,15 @@ export default function DayDetailScreen() {
           <ThemedText style={styles.notes} type="default" themeColor="textSecondary">
             {day.notes}
           </ThemedText>
+        )}
+
+        {hasLocations && (
+          <Button
+            title={t('trip.viewOnMap')}
+            onPress={() => router.push(`/trips/${id}/days/${dayId}/map`)}
+            style={styles.mapButton}
+            variant="outline"
+          />
         )}
 
         <View style={[styles.plansHeader, { borderBottomColor: theme.border }]}>
@@ -226,6 +237,7 @@ export default function DayDetailScreen() {
               canEdit={canEdit}
               onEdit={(i) => router.push(`/trips/${id}/days/${dayId}/items/${i.id}/edit`)}
               onDelete={handleDeleteItem}
+              onShowMap={(i) => router.push(`/trips/${id}/days/${dayId}/map?focusItemId=${i.id}`)}
             />
           )}
           ListHeaderComponent={renderHeader}
@@ -263,6 +275,9 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: 20,
+  },
+  mapButton: {
+    marginBottom: 16,
   },
   tripTitle: {
     fontSize: 14,
