@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -35,52 +55,151 @@ export type Database = {
         }
         Relationships: []
       }
-      trip_stops: {
+      trip_days: {
         Row: {
-          cost: number | null
+          created_at: string
+          day_date: string
           day_number: number
-          end_time: string | null
           id: string
-          latitude: number
-          longitude: number
           notes: string | null
-          start_time: string | null
-          stop_type: string | null
-          title: string
-          trip_id: string | null
+          title: string | null
+          trip_id: string
+          updated_at: string
         }
         Insert: {
-          cost?: number | null
+          created_at?: string
+          day_date: string
           day_number: number
-          end_time?: string | null
           id?: string
-          latitude: number
-          longitude: number
           notes?: string | null
-          start_time?: string | null
-          stop_type?: string | null
-          title: string
-          trip_id?: string | null
+          title?: string | null
+          trip_id: string
+          updated_at?: string
         }
         Update: {
-          cost?: number | null
+          created_at?: string
+          day_date?: string
           day_number?: number
-          end_time?: string | null
           id?: string
-          latitude?: number
-          longitude?: number
           notes?: string | null
-          start_time?: string | null
-          stop_type?: string | null
-          title?: string
-          trip_id?: string | null
+          title?: string | null
+          trip_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "trip_stops_trip_id_fkey"
+            foreignKeyName: "trip_days_trip_id_fkey"
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_items: {
+        Row: {
+          cost: number | null
+          created_at: string
+          currency: string | null
+          details: Json
+          end_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          sort_order: number
+          start_at: string | null
+          title: string
+          trip_day_id: string | null
+          trip_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          currency?: string | null
+          details?: Json
+          end_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          sort_order?: number
+          start_at?: string | null
+          title: string
+          trip_day_id?: string | null
+          trip_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          currency?: string | null
+          details?: Json
+          end_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          sort_order?: number
+          start_at?: string | null
+          title?: string
+          trip_day_id?: string | null
+          trip_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_items_trip_day_id_trip_id_fkey"
+            columns: ["trip_day_id", "trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip_days"
+            referencedColumns: ["id", "trip_id"]
+          },
+          {
+            foreignKeyName: "trip_items_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_members: {
+        Row: {
+          created_at: string
+          role: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -92,9 +211,10 @@ export type Database = {
           end_date: string
           id: string
           is_public: boolean | null
+          owner_id: string
           start_date: string
           title: string
-          user_id: string | null
+          updated_at: string
         }
         Insert: {
           created_at?: string | null
@@ -102,9 +222,10 @@ export type Database = {
           end_date: string
           id?: string
           is_public?: boolean | null
+          owner_id: string
           start_date: string
           title: string
-          user_id?: string | null
+          updated_at?: string
         }
         Update: {
           created_at?: string | null
@@ -112,14 +233,15 @@ export type Database = {
           end_date?: string
           id?: string
           is_public?: boolean | null
+          owner_id?: string
           start_date?: string
           title?: string
-          user_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "trips_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "trips_owner_id_fkey"
+            columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -131,7 +253,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_trip_member_role: { Args: { trip_uuid: string }; Returns: string }
+      is_trip_public: { Args: { trip_uuid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -260,6 +383,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

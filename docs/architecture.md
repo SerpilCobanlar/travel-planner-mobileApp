@@ -25,10 +25,12 @@ Bu belge, Travel Planner projesinin mevcut teknik mimarisini özetler.
 Mevcut ana tablolar:
 *   `profiles`
 *   `trips`
-*   `trip_stops`
+*   `trip_members`
+*   `trip_days`
+*   `trip_items`
 
 **ÖNEMLİ - Veritabanı Şeması:** 
-Mevcut DB şeması nihai değildir. İleride `trip_days`, `trip_items`, `trip_members` gibi daha detaylı yapılara evrilmesi planlanmaktadır ancak bu tablolar henüz mevcut değildir.
+`trip_stops` tablosu migration ile kaldırılarak yeni veri modeline geçilmiştir.
 
 *   **Migrations:** Veritabanı şema değişiklikleri yalnızca `supabase/migrations/` altındaki dosyalar üzerinden yürütülür.
 *   **RLS (Row Level Security):** Core tablolar (trips, profiles vb.) için aktiftir.
