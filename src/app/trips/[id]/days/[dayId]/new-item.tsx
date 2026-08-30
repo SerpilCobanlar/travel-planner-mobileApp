@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams, RelativePathString, useFocusEffect } from 'expo-router';
+import { getPickedLocation } from '@/lib/locationStore';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
@@ -46,6 +47,16 @@ export default function AddTripItemScreen() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const loc = getPickedLocation();
+      if (loc) {
+        setLatitude(loc.lat);
+        setLongitude(loc.lng);
+      }
+    }, [])
+  );
 
   const submitLockRef = useRef(false);
 
@@ -206,8 +217,12 @@ export default function AddTripItemScreen() {
 
       if (insertError) throw insertError;
 
-      // Success - replace exactly to day detail
-      router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
+      // Success - back to day detail
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
+      }
     } catch (err: any) {
       console.error('CREATE_TRIP_ITEM_ERROR', err);
       setError(t('item.createError') + ': ' + err.message);
@@ -220,16 +235,6 @@ export default function AddTripItemScreen() {
     router.push({
       pathname: '/trips/location-picker' as RelativePathString,
       params: {
-        returnTo: `/trips/${id}/days/${dayId}/new-item`,
-        id,
-        dayId,
-        type: selectedType,
-        title,
-        notes,
-        costStr,
-        currency,
-        startTime,
-        endTime,
         ...(latitude !== null ? { lat: latitude.toString() } : {}),
         ...(longitude !== null ? { lng: longitude.toString() } : {}),
       },

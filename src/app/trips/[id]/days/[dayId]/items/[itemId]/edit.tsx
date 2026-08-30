@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams, RelativePathString, useFocusEffect } from 'expo-router';
+import { getPickedLocation } from '@/lib/locationStore';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
@@ -40,17 +41,15 @@ export default function EditTripItemScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
-  // Listen for location picker return
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (params.lat !== undefined) {
-      setLatitude(params.lat ? parseFloat(params.lat as string) : null);
-    }
-    if (params.lng !== undefined) {
-      setLongitude(params.lng ? parseFloat(params.lng as string) : null);
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [params.lat, params.lng]);
+  useFocusEffect(
+    React.useCallback(() => {
+      const loc = getPickedLocation();
+      if (loc) {
+        setLatitude(loc.lat);
+        setLongitude(loc.lng);
+      }
+    }, [])
+  );
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -258,8 +257,12 @@ export default function EditTripItemScreen() {
 
       if (updateError) throw updateError;
 
-      // Success - replace exactly to day detail
-      router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
+      // Success - back to day detail
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
+      }
     } catch (err: any) {
       console.error('UPDATE_TRIP_ITEM_ERROR', err);
       setError(t('item.updateError') + ': ' + err.message);
@@ -272,17 +275,6 @@ export default function EditTripItemScreen() {
     router.push({
       pathname: '/trips/location-picker' as RelativePathString,
       params: {
-        returnTo: `/trips/${id}/days/${dayId}/items/${itemId}/edit`,
-        id,
-        dayId,
-        itemId,
-        type: selectedType,
-        title,
-        notes,
-        costStr,
-        currency,
-        startTime,
-        endTime,
         ...(latitude !== null ? { lat: latitude.toString() } : {}),
         ...(longitude !== null ? { lng: longitude.toString() } : {}),
       },

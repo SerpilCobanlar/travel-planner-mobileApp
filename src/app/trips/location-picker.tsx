@@ -3,6 +3,7 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import Mapbox, { initializeMapbox } from '@/lib/mapbox';
+import { setPickedLocation } from '@/lib/locationStore';
 import { Screen } from '@/components/ui/Screen';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/localization';
@@ -65,23 +66,13 @@ export default function LocationPickerScreen() {
   };
 
   const handleSelect = () => {
-    const returnTo = params.returnTo as string;
-    if (!returnTo) {
-      router.back();
-      return;
-    }
-
     if (selectedCoord) {
-      // Pass back all params, updating lat and lng
-      router.navigate({
-        pathname: returnTo as any,
-        params: {
-          ...params,
-          lat: selectedCoord[1].toString(),
-          lng: selectedCoord[0].toString(),
-        },
+      setPickedLocation({
+        lat: selectedCoord[1],
+        lng: selectedCoord[0],
       });
     }
+    router.back();
   };
 
   if (loading) {

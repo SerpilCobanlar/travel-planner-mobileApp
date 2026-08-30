@@ -87,6 +87,11 @@ export const dictionaries = {
       noLocations: 'Konumlu plan bulunamadı',
       mapLoadError: 'Harita yüklenemedi',
       mapFocusError: 'Harita odaklanamadı',
+      walking: 'Yürüyüş',
+      driving: 'Araç',
+      routeMinTwoLocations: 'Rota için en az iki konumlu plan gerekli.',
+      routeMax25Locations: 'Bir günlük rota en fazla 25 konum destekliyor.',
+      routeCreateError: 'Rota oluşturulamadı.',
     },
     // Trip Item
     item: {
@@ -233,6 +238,11 @@ export const dictionaries = {
       noLocations: 'No plans with locations found',
       mapLoadError: 'Unable to load map',
       mapFocusError: 'Unable to focus map',
+      walking: 'Walking',
+      driving: 'Driving',
+      routeMinTwoLocations: 'At least two locations are required for a route.',
+      routeMax25Locations: 'A daily route supports a maximum of 25 locations.',
+      routeCreateError: 'Failed to create route.',
     },
     // Trip Item
     item: {
