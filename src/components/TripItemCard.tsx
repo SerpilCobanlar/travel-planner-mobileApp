@@ -71,6 +71,13 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripIt
               {translatedType}
             </ThemedText>
           </View>
+          {item.latitude && item.longitude && (
+            <View style={[styles.badge, { backgroundColor: theme.primary + '10' }]}>
+              <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
+                📍 {t('item.locationAdded')}
+              </ThemedText>
+            </View>
+          )}
         </View>
 
         {canEdit && (

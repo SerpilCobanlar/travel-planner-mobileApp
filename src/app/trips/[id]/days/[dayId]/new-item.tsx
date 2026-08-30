@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
@@ -23,29 +23,44 @@ const ITEM_TYPES = [
 ];
 
 export default function AddTripItemScreen() {
-  const { id, dayId } = useLocalSearchParams<{ id: string; dayId: string }>();
+  const params = useLocalSearchParams();
+  const { id, dayId } = params as { id: string; dayId: string };
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const [selectedType, setSelectedType] = useState('place');
-  const [title, setTitle] = useState('');
-  const [notes, setNotes] = useState('');
-  const [costStr, setCostStr] = useState('');
-  const [currency, setCurrency] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  
+  const [selectedType, setSelectedType] = useState((params.type as string) || 'place');
+  const [title, setTitle] = useState((params.title as string) || '');
+  const [notes, setNotes] = useState((params.notes as string) || '');
+  const [costStr, setCostStr] = useState((params.costStr as string) || '');
+  const [currency, setCurrency] = useState((params.currency as string) || '');
+  const [startTime, setStartTime] = useState((params.startTime as string) || '');
+  const [endTime, setEndTime] = useState((params.endTime as string) || '');
+
+  const [latitude, setLatitude] = useState<number | null>(
+    params.lat ? parseFloat(params.lat as string) : null
+  );
+  const [longitude, setLongitude] = useState<number | null>(
+    params.lng ? parseFloat(params.lng as string) : null
+  );
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const submitLockRef = useRef(false);
+
   const handleCreate = async () => {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setError(null);
+    setLoading(true);
 
     // Validation
     const trimmedTitle = title.trim();
     if (trimmedTitle.length < 2 || trimmedTitle.length > 120) {
       setError(t('item.titleTooShort'));
+      submitLockRef.current = false;
+      setLoading(false);
       return;
     }
 
@@ -57,6 +72,8 @@ export default function AddTripItemScreen() {
       const numCost = parseFloat(trimmedCost.replace(',', '.'));
       if (isNaN(numCost) || numCost < 0) {
         setError(t('item.negativeCost'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       parsedCost = numCost;
@@ -64,6 +81,8 @@ export default function AddTripItemScreen() {
       const trimmedCurr = currency.trim().toUpperCase();
       if (trimmedCurr.length !== 3) {
         setError(t('item.invalidCurrency'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       finalCurrency = trimmedCurr;
@@ -80,6 +99,8 @@ export default function AddTripItemScreen() {
     if (trimmedStart) {
       if (!timeRegex.test(trimmedStart)) {
         setError(t('item.invalidTime'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       validStartTime = trimmedStart;
@@ -89,6 +110,8 @@ export default function AddTripItemScreen() {
     if (trimmedEnd) {
       if (!timeRegex.test(trimmedEnd)) {
         setError(t('item.invalidTime'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       validEndTime = trimmedEnd;
@@ -96,6 +119,8 @@ export default function AddTripItemScreen() {
 
     if (validEndTime && !validStartTime) {
       setError(t('item.endTimeRequiresStart'));
+      submitLockRef.current = false;
+      setLoading(false);
       return;
     }
 
@@ -104,13 +129,14 @@ export default function AddTripItemScreen() {
       const endValue = parseInt(validEndTime.replace(':', ''), 10);
       if (endValue < startValue) {
         setError(t('item.endTimeBeforeStart'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
     }
 
-    setLoading(true);
     try {
-      // 1. Cross-trip safety checks? Handled by trigger / RLS optionally, 
+      // 1. Cross-trip safety checks? Handled by trigger / RLS optionally,
       // but let's just make sure day matches trip.
       const { data: dayData, error: dayError } = await supabase
         .from('trip_days')
@@ -118,7 +144,7 @@ export default function AddTripItemScreen() {
         .eq('id', dayId)
         .eq('trip_id', id)
         .single();
-        
+
       if (dayError || !dayData) {
         throw new Error('Geçersiz gezi gün eşleşmesi');
       }
@@ -174,22 +200,40 @@ export default function AddTripItemScreen() {
           details: {},
           start_at: finalStartAt,
           end_at: finalEndAt,
+          latitude,
+          longitude,
         });
 
       if (insertError) throw insertError;
 
-      // Success
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace(`/trips/${id}/days/${dayId}`);
-      }
+      // Success - replace exactly to day detail
+      router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
     } catch (err: any) {
       console.error('CREATE_TRIP_ITEM_ERROR', err);
       setError(t('item.createError') + ': ' + err.message);
-    } finally {
+      submitLockRef.current = false;
       setLoading(false);
     }
+  };
+
+  const handleOpenMap = () => {
+    router.push({
+      pathname: '/trips/location-picker' as RelativePathString,
+      params: {
+        returnTo: `/trips/${id}/days/${dayId}/new-item`,
+        id,
+        dayId,
+        type: selectedType,
+        title,
+        notes,
+        costStr,
+        currency,
+        startTime,
+        endTime,
+        ...(latitude !== null ? { lat: latitude.toString() } : {}),
+        ...(longitude !== null ? { lng: longitude.toString() } : {}),
+      },
+    });
   };
 
   return (
@@ -206,8 +250,8 @@ export default function AddTripItemScreen() {
           )}
 
           <ThemedText style={styles.label}>{t('item.planType')}</ThemedText>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsContainer}
             style={styles.chipsScroll}
@@ -219,14 +263,14 @@ export default function AddTripItemScreen() {
                   key={type}
                   style={[
                     styles.chip,
-                    { 
+                    {
                       backgroundColor: isSelected ? theme.primary : theme.border,
                       borderColor: isSelected ? theme.primary : 'transparent',
                     }
                   ]}
                   onPress={() => setSelectedType(type)}
                 >
-                  <ThemedText 
+                  <ThemedText
                     style={[
                       styles.chipText,
                       { color: isSelected ? theme.background : theme.text }
@@ -307,6 +351,39 @@ export default function AddTripItemScreen() {
             </View>
           </View>
 
+          <View style={styles.locationContainer}>
+            <View style={styles.row}>
+              <ThemedText style={styles.label}>{t('item.location')}</ThemedText>
+              {latitude && longitude && (
+                <TouchableOpacity onPress={() => {
+                  setLatitude(null);
+                  setLongitude(null);
+                }}>
+                  <ThemedText style={[styles.removeLocation, { color: theme.error }]}>
+                    {t('item.removeLocation')}
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {latitude && longitude ? (
+              <ThemedText style={styles.locationText}>
+                {latitude.toFixed(4)}, {longitude.toFixed(4)}
+              </ThemedText>
+            ) : (
+              <ThemedText style={styles.locationText}>
+                {t('item.noLocationSelected')}
+              </ThemedText>
+            )}
+
+            <Button
+              title={t('item.chooseOnMap')}
+              onPress={handleOpenMap}
+              variant="outline"
+              style={styles.mapButton}
+            />
+          </View>
+
           <Button
             title={loading ? t('common.loading') : t('item.createPlan')}
             onPress={handleCreate}
@@ -372,5 +449,20 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 24,
+  },
+  locationContainer: {
+    marginBottom: 16,
+  },
+  removeLocation: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  locationText: {
+    fontSize: 14,
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  mapButton: {
+    marginTop: 8,
   },
 });

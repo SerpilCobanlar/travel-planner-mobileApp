@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
@@ -23,7 +23,8 @@ const ITEM_TYPES = [
 ];
 
 export default function EditTripItemScreen() {
-  const { id, dayId, itemId } = useLocalSearchParams<{ id: string; dayId: string; itemId: string }>();
+  const params = useLocalSearchParams();
+  const { id, dayId, itemId } = params as { id: string; dayId: string; itemId: string };
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
@@ -35,6 +36,21 @@ export default function EditTripItemScreen() {
   const [currency, setCurrency] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
+  // Listen for location picker return
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (params.lat !== undefined) {
+      setLatitude(params.lat ? parseFloat(params.lat as string) : null);
+    }
+    if (params.lng !== undefined) {
+      setLongitude(params.lng ? parseFloat(params.lng as string) : null);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [params.lat, params.lng]);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -83,6 +99,9 @@ export default function EditTripItemScreen() {
         setEndTime('');
       }
 
+      setLatitude(data.latitude !== undefined ? data.latitude : null);
+      setLongitude(data.longitude !== undefined ? data.longitude : null);
+
     } catch (err: any) {
       console.error('FETCH_TRIP_ITEM_ERROR', err);
       setError(t('item.fetchError'));
@@ -91,19 +110,25 @@ export default function EditTripItemScreen() {
     }
   }, [id, dayId, itemId, t]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchItem();
-    }, [fetchItem])
-  );
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchItem();
+  }, [fetchItem]);
+
+  const submitLockRef = useRef(false);
 
   const handleUpdate = async () => {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
     setError(null);
+    setLoading(true);
 
     // Validation
     const trimmedTitle = title.trim();
     if (trimmedTitle.length < 2 || trimmedTitle.length > 120) {
       setError(t('item.titleTooShort'));
+      submitLockRef.current = false;
+      setLoading(false);
       return;
     }
 
@@ -115,6 +140,8 @@ export default function EditTripItemScreen() {
       const numCost = parseFloat(trimmedCost.replace(',', '.'));
       if (isNaN(numCost) || numCost < 0) {
         setError(t('item.negativeCost'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       parsedCost = numCost;
@@ -122,6 +149,8 @@ export default function EditTripItemScreen() {
       const trimmedCurr = currency.trim().toUpperCase();
       if (trimmedCurr.length !== 3) {
         setError(t('item.invalidCurrency'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       finalCurrency = trimmedCurr;
@@ -138,6 +167,8 @@ export default function EditTripItemScreen() {
     if (trimmedStart) {
       if (!timeRegex.test(trimmedStart)) {
         setError(t('item.invalidTime'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       validStartTime = trimmedStart;
@@ -147,6 +178,8 @@ export default function EditTripItemScreen() {
     if (trimmedEnd) {
       if (!timeRegex.test(trimmedEnd)) {
         setError(t('item.invalidTime'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
       validEndTime = trimmedEnd;
@@ -154,6 +187,8 @@ export default function EditTripItemScreen() {
 
     if (validEndTime && !validStartTime) {
       setError(t('item.endTimeRequiresStart'));
+      submitLockRef.current = false;
+      setLoading(false);
       return;
     }
 
@@ -162,11 +197,12 @@ export default function EditTripItemScreen() {
       const endValue = parseInt(validEndTime.replace(':', ''), 10);
       if (endValue < startValue) {
         setError(t('item.endTimeBeforeStart'));
+        submitLockRef.current = false;
+        setLoading(false);
         return;
       }
     }
 
-    setLoading(true);
     try {
       const { data: dayData, error: dayError } = await supabase
         .from('trip_days')
@@ -213,6 +249,8 @@ export default function EditTripItemScreen() {
           currency: finalCurrency,
           start_at: finalStartAt,
           end_at: finalEndAt,
+          latitude,
+          longitude,
         })
         .eq('id', itemId)
         .eq('trip_id', id)
@@ -220,18 +258,35 @@ export default function EditTripItemScreen() {
 
       if (updateError) throw updateError;
 
-      // Success
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace(`/trips/${id}/days/${dayId}`);
-      }
+      // Success - replace exactly to day detail
+      router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
     } catch (err: any) {
       console.error('UPDATE_TRIP_ITEM_ERROR', err);
       setError(t('item.updateError') + ': ' + err.message);
-    } finally {
+      submitLockRef.current = false;
       setLoading(false);
     }
+  };
+
+  const handleOpenMap = () => {
+    router.push({
+      pathname: '/trips/location-picker' as RelativePathString,
+      params: {
+        returnTo: `/trips/${id}/days/${dayId}/items/${itemId}/edit`,
+        id,
+        dayId,
+        itemId,
+        type: selectedType,
+        title,
+        notes,
+        costStr,
+        currency,
+        startTime,
+        endTime,
+        ...(latitude !== null ? { lat: latitude.toString() } : {}),
+        ...(longitude !== null ? { lng: longitude.toString() } : {}),
+      },
+    });
   };
 
   if (initialLoading) {
@@ -360,6 +415,40 @@ export default function EditTripItemScreen() {
             </View>
           </View>
 
+          <View style={styles.locationContainer}>
+            <View style={styles.row}>
+              <ThemedText style={styles.label}>{t('item.location')}</ThemedText>
+              {latitude && longitude && (
+                <TouchableOpacity onPress={() => {
+                  setLatitude(null);
+                  setLongitude(null);
+                  router.setParams({ lat: '', lng: '' });
+                }}>
+                  <ThemedText style={[styles.removeLocation, { color: theme.error }]}>
+                    {t('item.removeLocation')}
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {latitude && longitude ? (
+              <ThemedText style={styles.locationText}>
+                {latitude.toFixed(4)}, {longitude.toFixed(4)}
+              </ThemedText>
+            ) : (
+              <ThemedText style={styles.locationText}>
+                {t('item.noLocationSelected')}
+              </ThemedText>
+            )}
+
+            <Button
+              title={t('item.chooseOnMap')}
+              onPress={handleOpenMap}
+              variant="outline"
+              style={styles.mapButton}
+            />
+          </View>
+
           <Button
             title={loading ? t('common.loading') : t('item.saveChanges')}
             onPress={handleUpdate}
@@ -431,5 +520,20 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 24,
+  },
+  locationContainer: {
+    marginBottom: 16,
+  },
+  removeLocation: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  locationText: {
+    fontSize: 14,
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  mapButton: {
+    marginTop: 8,
   },
 });
