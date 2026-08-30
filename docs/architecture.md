@@ -54,3 +54,4 @@ Environment değerleri kod içerisinde gizli tutulmamalı, `.env` dosyaları üz
 *   `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`
 
 > Secret değerler `.env.example` veya dokümantasyon dosyalarına yazılmamalıdır. Sadece değişken isimleri bulundurulmalıdır.
+Trip item times currently use the device local timezone when converting day + time to timestamptz. Destination-specific trip timezone support is deferred.

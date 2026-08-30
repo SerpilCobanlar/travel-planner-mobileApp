@@ -33,6 +33,8 @@ export default function AddTripItemScreen() {
   const [notes, setNotes] = useState('');
   const [costStr, setCostStr] = useState('');
   const [currency, setCurrency] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,13 +71,50 @@ export default function AddTripItemScreen() {
 
     const finalNotes = notes.trim() || null;
 
+    // Time Validation
+    const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+    let validStartTime: string | null = null;
+    let validEndTime: string | null = null;
+
+    const trimmedStart = startTime.trim();
+    if (trimmedStart) {
+      if (!timeRegex.test(trimmedStart)) {
+        setError(t('item.invalidTime'));
+        return;
+      }
+      validStartTime = trimmedStart;
+    }
+
+    const trimmedEnd = endTime.trim();
+    if (trimmedEnd) {
+      if (!timeRegex.test(trimmedEnd)) {
+        setError(t('item.invalidTime'));
+        return;
+      }
+      validEndTime = trimmedEnd;
+    }
+
+    if (validEndTime && !validStartTime) {
+      setError(t('item.endTimeRequiresStart'));
+      return;
+    }
+
+    if (validStartTime && validEndTime) {
+      const startValue = parseInt(validStartTime.replace(':', ''), 10);
+      const endValue = parseInt(validEndTime.replace(':', ''), 10);
+      if (endValue < startValue) {
+        setError(t('item.endTimeBeforeStart'));
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       // 1. Cross-trip safety checks? Handled by trigger / RLS optionally, 
       // but let's just make sure day matches trip.
       const { data: dayData, error: dayError } = await supabase
         .from('trip_days')
-        .select('id')
+        .select('id, day_date')
         .eq('id', dayId)
         .eq('trip_id', id)
         .single();
@@ -97,7 +136,30 @@ export default function AddTripItemScreen() {
       const maxSortOrder = itemsData.length > 0 ? itemsData[0].sort_order : -1;
       const nextSortOrder = maxSortOrder + 1;
 
-      // 3. Insert
+      // 3. Parse Time
+      let finalStartAt = null;
+      let finalEndAt = null;
+
+      if (dayData && dayData.day_date) {
+        const [y, m, d] = dayData.day_date.split('-');
+        const year = parseInt(y, 10);
+        const month = parseInt(m, 10);
+        const day = parseInt(d, 10);
+
+        if (validStartTime) {
+          const [sh, sm] = validStartTime.split(':');
+          const dateStart = new Date(year, month - 1, day, parseInt(sh, 10), parseInt(sm, 10));
+          finalStartAt = dateStart.toISOString();
+        }
+
+        if (validEndTime) {
+          const [eh, em] = validEndTime.split(':');
+          const dateEnd = new Date(year, month - 1, day, parseInt(eh, 10), parseInt(em, 10));
+          finalEndAt = dateEnd.toISOString();
+        }
+      }
+
+      // 4. Insert
       const { error: insertError } = await supabase
         .from('trip_items')
         .insert({
@@ -110,6 +172,8 @@ export default function AddTripItemScreen() {
           currency: finalCurrency,
           sort_order: nextSortOrder,
           details: {},
+          start_at: finalStartAt,
+          end_at: finalEndAt,
         });
 
       if (insertError) throw insertError;
@@ -213,6 +277,31 @@ export default function AddTripItemScreen() {
                 placeholder="TRY"
                 maxLength={3}
                 autoCapitalize="characters"
+                style={styles.input}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.halfCol}>
+              <ThemedText style={styles.label}>{t('item.startTime')}</ThemedText>
+              <TextInput
+                value={startTime}
+                onChangeText={setStartTime}
+                placeholder={t('item.timePlaceholder')}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.halfCol}>
+              <ThemedText style={styles.label}>{t('item.endTime')}</ThemedText>
+              <TextInput
+                value={endTime}
+                onChangeText={setEndTime}
+                placeholder={t('item.timePlaceholder')}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
                 style={styles.input}
               />
             </View>

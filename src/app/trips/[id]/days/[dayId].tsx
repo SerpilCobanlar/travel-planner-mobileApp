@@ -63,8 +63,8 @@ export default function DayDetailScreen() {
         .select('*')
         .eq('trip_id', id)
         .eq('trip_day_id', dayId)
-        .order('sort_order', { ascending: true })
-        .order('start_at', { ascending: true });
+        .order('start_at', { ascending: true, nullsFirst: false })
+        .order('sort_order', { ascending: true });
 
       if (itemsError) throw itemsError;
       setItems(itemsData || []);

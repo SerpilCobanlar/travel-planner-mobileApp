@@ -23,6 +23,21 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripIt
   const typeTranslationKey = `item.types.${item.type}` as TranslationKey;
   const translatedType = t(typeTranslationKey);
 
+  let timeString = '';
+  if (item.start_at) {
+    const sd = new Date(item.start_at);
+    const shh = sd.getHours().toString().padStart(2, '0');
+    const smm = sd.getMinutes().toString().padStart(2, '0');
+    timeString = `${shh}:${smm}`;
+
+    if (item.end_at) {
+      const ed = new Date(item.end_at);
+      const ehh = ed.getHours().toString().padStart(2, '0');
+      const emm = ed.getMinutes().toString().padStart(2, '0');
+      timeString += ` - ${ehh}:${emm}`;
+    }
+  }
+
   const handleDelete = () => {
     Alert.alert(
       t('item.deletePlan'),
@@ -43,10 +58,19 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripIt
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <View style={[styles.badge, { backgroundColor: theme.primary + '20' }]}>
-          <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
-            {translatedType}
-          </ThemedText>
+        <View style={styles.headerLeft}>
+          {timeString ? (
+            <View style={[styles.timeBadge, { backgroundColor: theme.text + '10' }]}>
+              <ThemedText style={[styles.timeText, { color: theme.text }]}>
+                {timeString}
+              </ThemedText>
+            </View>
+          ) : null}
+          <View style={[styles.badge, { backgroundColor: theme.primary + '20' }]}>
+            <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
+              {translatedType}
+            </ThemedText>
+          </View>
         </View>
 
         {canEdit && (
@@ -61,12 +85,12 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete }: TripIt
           </View>
         )}
       </View>
-      
+
       <View style={styles.titleRow}>
         <ThemedText style={styles.title} type="default">
           {item.title}
         </ThemedText>
-        
+
         {item.cost !== null && item.currency !== null && (
           <ThemedText style={styles.cost} type="default">
             {item.cost} {item.currency}
@@ -93,6 +117,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  timeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timeText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   badge: {
     paddingHorizontal: 8,
