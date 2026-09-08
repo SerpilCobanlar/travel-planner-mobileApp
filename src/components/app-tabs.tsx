@@ -6,6 +6,7 @@ export default function AppTabs() {
   const theme = useTheme();
   const { t } = useTranslation();
 
+
   return (
     <NativeTabs
       backgroundColor={theme.background}
@@ -14,6 +15,8 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>{t('tabs.trips')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
+          // @ts-ignore sfSymbol is not typed in NativeTabs yet
+          sfSymbol="house.fill"
           src={require('@/assets/images/tabIcons/home.png')}
           renderingMode="template"
         />
@@ -22,6 +25,8 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="discover">
         <NativeTabs.Trigger.Label>{t('tabs.discover')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
+          // @ts-ignore sfSymbol is not typed in NativeTabs yet
+          sfSymbol="paperplane.fill"
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />
@@ -30,6 +35,8 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="blog">
         <NativeTabs.Trigger.Label>{t('tabs.blog')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
+          // @ts-ignore sfSymbol is not typed in NativeTabs yet
+          sfSymbol="doc.text.image"
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />
@@ -38,6 +45,8 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Label>{t('tabs.profile')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
+          // @ts-ignore sfSymbol is not typed in NativeTabs yet
+          sfSymbol="person.fill"
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"
         />

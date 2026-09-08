@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Switch, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
 import { Button } from '@/components/ui/Button';
+import { DatePickerField } from '@/components/ui/DatePickerField';
+import { ToggleRow } from '@/components/ui/ToggleRow';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
@@ -27,12 +29,7 @@ export default function EditTripScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const formatDateForInput = (dateStr: string) => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    if (!y || !m || !d) return dateStr;
-    return `${d}.${m}.${y}`;
-  };
+  // Dates are in YYYY-MM-DD format from DatePickerField
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -49,8 +46,8 @@ export default function EditTripScreen() {
         if (data) {
           setTitle(data.title);
           setDescription(data.description || '');
-          setStartDate(formatDateForInput(data.start_date));
-          setEndDate(formatDateForInput(data.end_date));
+          setStartDate(data.start_date);
+          setEndDate(data.end_date);
           setIsPublic(data.is_public ?? false);
         }
       } catch (err: any) {
@@ -63,30 +60,7 @@ export default function EditTripScreen() {
     fetchTrip();
   }, [id, t]);
 
-  const parseDate = (dateStr: string) => {
-    const regex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
-    const match = dateStr.trim().match(regex);
-    if (!match) return null;
-    
-    const [, d, m, y] = match;
-    const day = parseInt(d, 10);
-    const month = parseInt(m, 10);
-    const year = parseInt(y, 10);
-    
-    if (month < 1 || month > 12) return null;
-    if (day < 1 || day > 31) return null;
-    
-    const date = new Date(year, month - 1, day);
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
-    ) {
-      return null;
-    }
-    
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  };
+  // No need for parseDate as DatePickerField outputs YYYY-MM-DD
 
   const handleUpdate = async () => {
     if (saving) return;
@@ -103,15 +77,12 @@ export default function EditTripScreen() {
       return;
     }
 
-    const parsedStart = parseDate(startDate);
-    const parsedEnd = parseDate(endDate);
-
-    if (!parsedStart || !parsedEnd) {
+    if (!startDate || !endDate) {
       setError(t('trip.invalidDate'));
       return;
     }
 
-    if (new Date(parsedEnd) < new Date(parsedStart)) {
+    if (new Date(endDate) < new Date(startDate)) {
       setError(t('trip.endDateBeforeStart'));
       return;
     }
@@ -123,8 +94,8 @@ export default function EditTripScreen() {
         .update({
           title: trimmedTitle,
           description: description.trim() || null,
-          start_date: parsedStart,
-          end_date: parsedEnd,
+          start_date: startDate,
+          end_date: endDate,
           is_public: isPublic,
         })
         .eq('id', id as string);
@@ -142,7 +113,9 @@ export default function EditTripScreen() {
         router.replace(`/trips/${id}`);
       }
     } catch (err: any) {
-      console.error('UPDATE_TRIP_ERROR', err);
+      if (err.message !== t('trip.dateRangeRejectedItems')) {
+        console.error('UPDATE_TRIP_ERROR', err);
+      }
       setError(err.message || t('trip.updateError'));
     } finally {
       setSaving(false);
@@ -161,10 +134,9 @@ export default function EditTripScreen() {
   }
 
   return (
-    <Screen safeArea>
+    <Screen scrollable safeArea>
       <Stack.Screen options={{ title: t('trip.editTrip'), headerBackTitle: t('trip.cancel') }} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.container}>
+      <View style={styles.container}>
           {error && (
             <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
               <ThemedText style={styles.errorText} themeColor="error">
@@ -193,39 +165,25 @@ export default function EditTripScreen() {
           />
 
           <View style={styles.row}>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('trip.startDate')}</ThemedText>
-              <TextInput
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder={t('trip.datePlaceholder')}
-                keyboardType="numbers-and-punctuation"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('trip.endDate')}</ThemedText>
-              <TextInput
-                value={endDate}
-                onChangeText={setEndDate}
-                placeholder={t('trip.datePlaceholder')}
-                keyboardType="numbers-and-punctuation"
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.switchRow}>
-            <ThemedText style={styles.switchLabel}>
-              {isPublic ? t('trip.isPublic') : t('trip.isPrivate')}
-            </ThemedText>
-            <Switch
-              value={isPublic}
-              onValueChange={setIsPublic}
-              trackColor={{ false: theme.border, true: theme.primary }}
-              thumbColor={theme.background}
+            <DatePickerField
+              label={t('trip.startDate')}
+              value={startDate}
+              onChange={setStartDate}
+            />
+            <View style={{ width: 16 }} />
+            <DatePickerField
+              label={t('trip.endDate')}
+              value={endDate}
+              onChange={setEndDate}
             />
           </View>
+
+          <ToggleRow
+            labelFalse={t('trip.isPrivate')}
+            labelTrue={t('trip.isPublic')}
+            value={isPublic}
+            onValueChange={setIsPublic}
+          />
 
           <Button
             title={saving ? t('common.loading') : t('trip.saveChanges')}
@@ -234,7 +192,6 @@ export default function EditTripScreen() {
             style={styles.submitButton}
           />
         </View>
-      </ScrollView>
     </Screen>
   );
 }

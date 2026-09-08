@@ -87,7 +87,7 @@ export default function LocationPickerScreen() {
   }
 
   return (
-    <Screen safeArea>
+    <Screen safeArea={false} padded={false}>
       <Stack.Screen options={{ title: t('item.chooseOnMap'), headerBackTitle: 'Geri' }} />
       <View style={styles.container}>
         <Mapbox.MapView style={styles.map} onRegionDidChange={handleRegionDidChange}>

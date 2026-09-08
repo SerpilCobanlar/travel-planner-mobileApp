@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useColorScheme } from 'react-native';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/context/AuthContext';
-import { usePreferences, ThemePreference, LanguagePreference } from '@/context/PreferencesContext';
+import { usePreferences, LanguagePreference } from '@/context/PreferencesContext';
 import { useTranslation } from '@/localization';
 import { supabase } from '@/lib/supabaseClient';
 import { useTheme } from '@/hooks/use-theme';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function ProfileScreen() {
   const { user } = useAuth();
   const { theme, setTheme, language, setLanguage } = usePreferences();
   const { t } = useTranslation();
   const colors = useTheme();
+  const systemTheme = useColorScheme() || 'light';
   
   const [username, setUsername] = useState<string | null>(null);
 
@@ -35,6 +37,14 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  const getSystemThemeText = () => {
+    const isDark = systemTheme === 'dark';
+    if (language === 'tr') {
+      return `Sistem • Şu an ${isDark ? 'Koyu' : 'Açık'}`;
+    }
+    return `System • Currently ${isDark ? 'Dark' : 'Light'}`;
   };
 
   return (
@@ -69,25 +79,43 @@ export default function ProfileScreen() {
       
       <Card>
         <View style={styles.settingRow}>
-          <ThemedText>{t('profile.theme')}</ThemedText>
-          <View style={styles.buttonGroup}>
-            {(['system', 'light', 'dark'] as ThemePreference[]).map((tOpt) => (
+          <View style={styles.rowHeader}>
+            <IconSymbol name="gearshape.fill" size={20} color={colors.textSecondary} />
+            <ThemedText style={styles.rowTitle}>{t('profile.theme')}</ThemedText>
+          </View>
+          <View style={styles.buttonGroupVertical}>
+            <Button
+              title={getSystemThemeText()}
+              variant={theme === 'system' ? 'primary' : 'outline'}
+              onPress={() => setTheme('system')}
+              style={[styles.themeBtn, theme !== 'system' && { borderColor: colors.border }] as any}
+            />
+            <View style={styles.buttonGroup}>
               <Button
-                key={tOpt}
-                title={t(`profile.theme${tOpt.charAt(0).toUpperCase() + tOpt.slice(1)}` as any)}
-                variant={theme === tOpt ? 'primary' : 'outline'}
-                onPress={() => setTheme(tOpt)}
-                style={[styles.smallButton, theme !== tOpt && { borderColor: colors.border }] as any}
+                title={t('profile.themeLight')}
+                variant={theme === 'light' ? 'primary' : 'outline'}
+                onPress={() => setTheme('light')}
+                style={[styles.smallButton, theme !== 'light' && { borderColor: colors.border }] as any}
                 textStyle={styles.smallButtonText}
               />
-            ))}
+              <Button
+                title={t('profile.themeDark')}
+                variant={theme === 'dark' ? 'primary' : 'outline'}
+                onPress={() => setTheme('dark')}
+                style={[styles.smallButton, theme !== 'dark' && { borderColor: colors.border }] as any}
+                textStyle={styles.smallButtonText}
+              />
+            </View>
           </View>
         </View>
 
-        <View style={styles.separator} />
+        <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
         <View style={styles.settingRow}>
-          <ThemedText>{t('profile.language')}</ThemedText>
+          <View style={styles.rowHeader}>
+            <IconSymbol name="globe" size={20} color={colors.textSecondary} />
+            <ThemedText style={styles.rowTitle}>{t('profile.language')}</ThemedText>
+          </View>
           <View style={styles.buttonGroup}>
             {(['tr', 'en'] as LanguagePreference[]).map((lOpt) => (
               <Button
@@ -138,13 +166,27 @@ const styles = StyleSheet.create({
   settingRow: {
     paddingVertical: 8,
   },
-  buttonGroup: {
+  rowHeader: {
     flexDirection: 'row',
-    marginTop: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  rowTitle: {
+    marginLeft: 8,
+  },
+  buttonGroupVertical: {
     gap: 8,
   },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  themeBtn: {
+    height: 40,
+    paddingHorizontal: 12,
+  },
   smallButton: {
-    height: 36,
+    height: 40,
     paddingHorizontal: 12,
     flex: 1,
   },
@@ -153,7 +195,6 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: '#E5E7EB', // This should idealy use theme.border
     marginVertical: 12,
   },
   logoutButton: {

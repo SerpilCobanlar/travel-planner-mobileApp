@@ -148,6 +148,7 @@ export default function TripDetailScreen() {
               onPress={() => router.push(`/trips/${id}/edit`)}
               style={styles.actionButton}
               variant="outline"
+              icon="pencil"
             />
             {role === 'owner' && (
               <Button
@@ -157,6 +158,7 @@ export default function TripDetailScreen() {
                 style={[styles.actionButton, styles.deleteButton]}
                 textStyle={styles.deleteButtonText}
                 variant="outline"
+                icon="trash"
               />
             )}
           </View>

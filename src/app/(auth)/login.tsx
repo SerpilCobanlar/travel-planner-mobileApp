@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabaseClient';
 import { useTranslation } from '@/localization';
@@ -47,7 +47,12 @@ export default function LoginScreen() {
     });
 
     if (error) {
-      setErrorMsg(t('auth.error'));
+      if (error.message.includes('Invalid login credentials')) {
+        setErrorMsg(t('auth.invalidCredentials'));
+      } else {
+        console.error('Login error:', error);
+        setErrorMsg(t('auth.error'));
+      }
     }
     setLoading(false);
   };
@@ -57,11 +62,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <Screen scrollable safeArea>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
+    <Screen scrollable safeArea style={styles.container}>
+      <View>
         <View style={styles.header}>
           <ThemedText type="title" themeColor="primary">Travel Planner</ThemedText>
           <ThemedText type="default" themeColor="textSecondary" style={styles.subtitle}>
@@ -113,7 +115,7 @@ export default function LoginScreen() {
             onPress={toggleLanguage} 
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

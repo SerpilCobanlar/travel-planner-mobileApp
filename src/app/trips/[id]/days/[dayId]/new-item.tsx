@@ -6,6 +6,8 @@ import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
 import { Button } from '@/components/ui/Button';
+import { TimePickerField } from '@/components/ui/TimePickerField';
+import { SelectField } from '@/components/ui/SelectField';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
@@ -23,6 +25,13 @@ const ITEM_TYPES = [
   'note',
 ];
 
+const CURRENCIES = [
+  { label: 'Türk Lirası (TRY)', value: 'TRY' },
+  { label: 'US Dollar (USD)', value: 'USD' },
+  { label: 'Euro (EUR)', value: 'EUR' },
+  { label: 'British Pound (GBP)', value: 'GBP' },
+];
+
 export default function AddTripItemScreen() {
   const params = useLocalSearchParams();
   const { id, dayId } = params as { id: string; dayId: string };
@@ -34,9 +43,9 @@ export default function AddTripItemScreen() {
   const [title, setTitle] = useState((params.title as string) || '');
   const [notes, setNotes] = useState((params.notes as string) || '');
   const [costStr, setCostStr] = useState((params.costStr as string) || '');
-  const [currency, setCurrency] = useState((params.currency as string) || '');
-  const [startTime, setStartTime] = useState((params.startTime as string) || '');
-  const [endTime, setEndTime] = useState((params.endTime as string) || '');
+  const [currency, setCurrency] = useState<string | null>((params.currency as string) || null);
+  const [startTime, setStartTime] = useState<string | null>((params.startTime as string) || null);
+  const [endTime, setEndTime] = useState<string | null>((params.endTime as string) || null);
 
   const [latitude, setLatitude] = useState<number | null>(
     params.lat ? parseFloat(params.lat as string) : null
@@ -89,43 +98,41 @@ export default function AddTripItemScreen() {
       }
       parsedCost = numCost;
 
-      const trimmedCurr = currency.trim().toUpperCase();
-      if (trimmedCurr.length !== 3) {
-        setError(t('item.invalidCurrency'));
-        submitLockRef.current = false;
-        setLoading(false);
-        return;
+      if (numCost > 0) {
+        if (!currency) {
+          setError(t('item.currencyRequired'));
+          submitLockRef.current = false;
+          setLoading(false);
+          return;
+        }
+        finalCurrency = currency;
       }
-      finalCurrency = trimmedCurr;
     }
 
     const finalNotes = notes.trim() || null;
 
-    // Time Validation
     const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
     let validStartTime: string | null = null;
     let validEndTime: string | null = null;
 
-    const trimmedStart = startTime.trim();
-    if (trimmedStart) {
-      if (!timeRegex.test(trimmedStart)) {
+    if (startTime) {
+      if (!timeRegex.test(startTime)) {
         setError(t('item.invalidTime'));
         submitLockRef.current = false;
         setLoading(false);
         return;
       }
-      validStartTime = trimmedStart;
+      validStartTime = startTime;
     }
 
-    const trimmedEnd = endTime.trim();
-    if (trimmedEnd) {
-      if (!timeRegex.test(trimmedEnd)) {
+    if (endTime) {
+      if (!timeRegex.test(endTime)) {
         setError(t('item.invalidTime'));
         submitLockRef.current = false;
         setLoading(false);
         return;
       }
-      validEndTime = trimmedEnd;
+      validEndTime = endTime;
     }
 
     if (validEndTime && !validStartTime) {
@@ -242,10 +249,9 @@ export default function AddTripItemScreen() {
   };
 
   return (
-    <Screen safeArea>
+    <Screen scrollable safeArea>
       <Stack.Screen options={{ title: t('item.createPlan'), headerBackTitle: 'Geri' }} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.container}>
+      <View style={styles.container}>
           {error && (
             <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
               <ThemedText style={styles.errorText} themeColor="error">
@@ -319,41 +325,28 @@ export default function AddTripItemScreen() {
               />
             </View>
             <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('item.currency')}</ThemedText>
-              <TextInput
+              <SelectField
+                label={t('item.currency')}
                 value={currency}
-                onChangeText={(val) => setCurrency(val.toUpperCase())}
-                placeholder="TRY"
-                maxLength={3}
-                autoCapitalize="characters"
-                style={styles.input}
+                options={CURRENCIES}
+                onChange={setCurrency}
+                disabled={!costStr || parseFloat(costStr.replace(',', '.')) <= 0}
               />
             </View>
           </View>
 
           <View style={styles.row}>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('item.startTime')}</ThemedText>
-              <TextInput
-                value={startTime}
-                onChangeText={setStartTime}
-                placeholder={t('item.timePlaceholder')}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('item.endTime')}</ThemedText>
-              <TextInput
-                value={endTime}
-                onChangeText={setEndTime}
-                placeholder={t('item.timePlaceholder')}
-                keyboardType="numbers-and-punctuation"
-                maxLength={5}
-                style={styles.input}
-              />
-            </View>
+            <TimePickerField
+              label={t('item.startTime')}
+              value={startTime}
+              onChange={setStartTime}
+            />
+            <View style={{ width: 16 }} />
+            <TimePickerField
+              label={t('item.endTime')}
+              value={endTime}
+              onChange={setEndTime}
+            />
           </View>
 
           <View style={styles.locationContainer}>
@@ -396,7 +389,6 @@ export default function AddTripItemScreen() {
             style={styles.submitButton}
           />
         </View>
-      </ScrollView>
     </Screen>
   );
 }

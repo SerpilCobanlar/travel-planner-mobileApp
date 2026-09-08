@@ -238,7 +238,7 @@ export default function DayMapScreen() {
   const selectedItem = items.find((i) => i.id === selectedItemId);
 
   return (
-    <Screen safeArea padded={false}>
+    <Screen safeArea={false} padded={false}>
       <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
       <View style={styles.container}>
         <Mapbox.MapView style={styles.map}>

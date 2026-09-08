@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  TouchableOpacity, 
-  StyleSheet, 
-  ActivityIndicator, 
+import {
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
   TouchableOpacityProps,
   ViewStyle,
   TextStyle,
@@ -11,6 +11,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { ThemedText } from '../themed-text';
 import { BorderRadius } from '@/constants/theme';
+import { IconSymbol, IconSymbolName } from './IconSymbol';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -18,16 +19,18 @@ interface ButtonProps extends TouchableOpacityProps {
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  icon?: IconSymbolName;
 }
 
-export function Button({ 
-  title, 
-  variant = 'primary', 
-  loading = false, 
-  disabled, 
-  style, 
+export function Button({
+  title,
+  variant = 'primary',
+  loading = false,
+  disabled,
+  style,
   textStyle,
-  ...props 
+  icon,
+  ...props
 }: ButtonProps) {
   const theme = useTheme();
 
@@ -76,16 +79,19 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={getTextColor()} />
       ) : (
-        <ThemedText 
-          style={[
-            styles.text, 
-            { color: getTextColor() },
-            textStyle
-          ]} 
-          type="default"
-        >
-          {title}
-        </ThemedText>
+        <>
+          {icon && <IconSymbol name={icon} size={20} color={getTextColor() as string} style={styles.icon} />}
+          <ThemedText
+            style={[
+              styles.text,
+              { color: getTextColor() },
+              textStyle
+            ]}
+            type="default"
+          >
+            {title}
+          </ThemedText>
+        </>
       )}
     </TouchableOpacity>
   );
@@ -102,5 +108,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontWeight: '600',
+  },
+  icon: {
+    marginRight: 8,
   }
 });

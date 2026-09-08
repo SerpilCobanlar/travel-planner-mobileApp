@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Switch, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { TextInput } from '@/components/ui/TextInput';
 import { Button } from '@/components/ui/Button';
+import { DatePickerField } from '@/components/ui/DatePickerField';
+import { ToggleRow } from '@/components/ui/ToggleRow';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
@@ -24,37 +27,11 @@ export default function CreateTripScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Simple validation for DD.MM.YYYY
-  const parseDate = (dateStr: string) => {
-    const regex = /^(\d{2})\.(\d{2})\.(\d{4})$/;
-    const match = dateStr.trim().match(regex);
-    if (!match) return null;
-    
-    const [, d, m, y] = match;
-    const day = parseInt(d, 10);
-    const month = parseInt(m, 10);
-    const year = parseInt(y, 10);
-    
-    // Check basic ranges
-    if (month < 1 || month > 12) return null;
-    if (day < 1 || day > 31) return null;
-    
-    const date = new Date(year, month - 1, day);
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
-    ) {
-      return null;
-    }
-    
-    // Valid DB format
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  };
+  // Dates are already YYYY-MM-DD from DatePickerField
 
   const handleCreate = async () => {
     setError(null);
-    
+
     if (!user) {
       setError(t('auth.error'));
       return;
@@ -66,15 +43,12 @@ export default function CreateTripScreen() {
       return;
     }
 
-    const parsedStart = parseDate(startDate);
-    const parsedEnd = parseDate(endDate);
-
-    if (!parsedStart || !parsedEnd) {
+    if (!startDate || !endDate) {
       setError(t('trip.invalidDate'));
       return;
     }
 
-    if (new Date(parsedEnd) < new Date(parsedStart)) {
+    if (new Date(endDate) < new Date(startDate)) {
       setError(t('trip.endDateBeforeStart'));
       return;
     }
@@ -87,8 +61,8 @@ export default function CreateTripScreen() {
           owner_id: user.id,
           title: trimmedTitle,
           description: description.trim() || null,
-          start_date: parsedStart,
-          end_date: parsedEnd,
+          start_date: startDate,
+          end_date: endDate,
           is_public: isPublic,
         });
 
@@ -108,80 +82,74 @@ export default function CreateTripScreen() {
   };
 
   return (
-    <Screen safeArea>
-      <Stack.Screen options={{ title: t('trip.createTrip'), headerBackTitle: 'Geri' }} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.container}>
-          {error && (
-            <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
-              <ThemedText style={styles.errorText} themeColor="error">
-                {error}
-              </ThemedText>
-            </View>
-          )}
-
-          <ThemedText style={styles.label}>{t('trip.title')}</ThemedText>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('trip.titlePlaceholder')}
-            maxLength={100}
-            style={styles.input}
-          />
-
-          <ThemedText style={styles.label}>{t('trip.description')}</ThemedText>
-          <TextInput
-            value={description}
-            onChangeText={setDescription}
-            placeholder={t('trip.descPlaceholder')}
-            multiline
-            numberOfLines={3}
-            style={[styles.input, styles.textArea]}
-          />
-
-          <View style={styles.row}>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('trip.startDate')}</ThemedText>
-              <TextInput
-                value={startDate}
-                onChangeText={setStartDate}
-                placeholder={t('trip.datePlaceholder')}
-                keyboardType="numbers-and-punctuation"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('trip.endDate')}</ThemedText>
-              <TextInput
-                value={endDate}
-                onChangeText={setEndDate}
-                placeholder={t('trip.datePlaceholder')}
-                keyboardType="numbers-and-punctuation"
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.switchRow}>
-            <ThemedText style={styles.switchLabel}>
-              {isPublic ? t('trip.isPublic') : t('trip.isPrivate')}
+    <Screen scrollable safeArea>
+      <Stack.Screen
+        options={{
+          title: t('trip.createTrip'),
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', marginLeft: -8 }}>
+              <IconSymbol name="chevron.left" size={28} color={theme.primary} />
+              <ThemedText style={{ color: theme.primary, fontSize: 17 }}>{t('trip.back')}</ThemedText>
+            </TouchableOpacity>
+          )
+        }}
+      />
+      <View style={styles.container}>
+        {error && (
+          <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
+            <ThemedText style={styles.errorText} themeColor="error">
+              {error}
             </ThemedText>
-            <Switch
-              value={isPublic}
-              onValueChange={setIsPublic}
-              trackColor={{ false: theme.border, true: theme.primary }}
-              thumbColor={theme.background}
-            />
           </View>
+        )}
 
-          <Button
-            title={loading ? t('common.loading') : t('trip.createTrip')}
-            onPress={handleCreate}
-            disabled={loading}
-            style={styles.submitButton}
+        <ThemedText style={styles.label}>{t('trip.title')}</ThemedText>
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          placeholder={t('trip.titlePlaceholder')}
+          maxLength={100}
+          style={styles.input}
+        />
+
+        <ThemedText style={styles.label}>{t('trip.description')}</ThemedText>
+        <TextInput
+          value={description}
+          onChangeText={setDescription}
+          placeholder={t('trip.descPlaceholder')}
+          multiline
+          numberOfLines={3}
+          style={[styles.input, styles.textArea]}
+        />
+
+        <View style={styles.row}>
+          <DatePickerField
+            label={t('trip.startDate')}
+            value={startDate}
+            onChange={setStartDate}
+          />
+          <View style={{ width: 16 }} />
+          <DatePickerField
+            label={t('trip.endDate')}
+            value={endDate}
+            onChange={setEndDate}
           />
         </View>
-      </ScrollView>
+
+        <ToggleRow
+          labelFalse={t('trip.isPrivate')}
+          labelTrue={t('trip.isPublic')}
+          value={isPublic}
+          onValueChange={setIsPublic}
+        />
+
+        <Button
+          title={loading ? t('common.loading') : t('trip.createTrip')}
+          onPress={handleCreate}
+          disabled={loading}
+          style={styles.submitButton}
+        />
+      </View>
     </Screen>
   );
 }
