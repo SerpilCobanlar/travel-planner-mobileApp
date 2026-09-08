@@ -1,13 +1,15 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
+import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/types/database.types';
 import TripDayCard from '@/components/TripDayCard';
+import { Button } from '@/components/ui/Button';
 
 type Trip = Database['public']['Tables']['trips']['Row'];
 type TripDay = Database['public']['Tables']['trip_days']['Row'];
@@ -24,6 +26,9 @@ export default function TripDetailScreen() {
   const [allItems, setAllItems] = useState<TripItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { user } = useAuth();
 
   const fetchTripDetails = useCallback(async () => {
     if (!id) return;
@@ -69,13 +74,29 @@ export default function TripDetailScreen() {
       if (itemsError) throw itemsError;
 
       setAllItems(itemsData || []);
+
+      if (user) {
+        if (tripData.owner_id === user.id) {
+          setRole('owner');
+        } else {
+          const { data: memberData } = await supabase
+            .from('trip_members')
+            .select('role')
+            .eq('trip_id', id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          setRole(memberData?.role || null);
+        }
+      } else {
+        setRole(null);
+      }
     } catch (err: any) {
       console.error('TRIP_DETAIL_FETCH_ERROR', err);
       setError(t('trip.fetchError'));
     } finally {
       setLoading(false);
     }
-  }, [id, t]);
+  }, [id, t, user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -119,7 +140,61 @@ export default function TripDetailScreen() {
         <ThemedText style={styles.dailyPlanTitle} type="subtitle">
           {t('trip.dailyPlan')}
         </ThemedText>
+
+        {(role === 'owner' || role === 'editor') && (
+          <View style={styles.actionsContainer}>
+            <Button
+              title={t('trip.editTrip')}
+              onPress={() => router.push(`/trips/${id}/edit`)}
+              style={styles.actionButton}
+              variant="outline"
+            />
+            {role === 'owner' && (
+              <Button
+                title={isDeleting ? t('common.loading') : t('trip.deleteTrip')}
+                onPress={handleDelete}
+                disabled={isDeleting}
+                style={[styles.actionButton, styles.deleteButton]}
+                textStyle={styles.deleteButtonText}
+                variant="outline"
+              />
+            )}
+          </View>
+        )}
       </View>
+    );
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      t('trip.deleteConfirmTitle'),
+      t('trip.deleteConfirmMessage'),
+      [
+        { text: t('trip.cancel'), style: 'cancel' },
+        {
+          text: t('trip.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            if (isDeleting) return;
+            try {
+              setIsDeleting(true);
+              const { error: deleteError } = await supabase
+                .from('trips')
+                .delete()
+                .eq('id', id as string);
+
+              if (deleteError) throw deleteError;
+
+              router.dismissAll();
+              router.replace('/(tabs)');
+            } catch (err: any) {
+              console.error('DELETE_TRIP_ERROR', err);
+              Alert.alert(t('auth.error'), t('trip.deleteError'));
+              setIsDeleting(false);
+            }
+          }
+        }
+      ]
     );
   };
 
@@ -219,5 +294,20 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     textAlign: 'center',
-  }
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  deleteButton: {
+    borderColor: '#ff4444',
+  },
+  deleteButtonText: {
+    color: '#ff4444',
+  },
 });

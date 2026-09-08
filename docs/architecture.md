@@ -33,7 +33,11 @@ Mevcut ana tablolar:
 `trip_stops` tablosu migration ile kaldırılarak yeni veri modeline geçilmiştir.
 
 *   **Migrations:** Veritabanı şema değişiklikleri yalnızca `supabase/migrations/` altındaki dosyalar üzerinden yürütülür.
-*   **Trip Days:** Trip days are generated on trip creation. Date-range editing/synchronization will be handled by the future Trip Edit flow.
+*   **Trip Days:**
+    - create -> automatic days
+    - edit -> calendar-date preservation
+    - empty out-of-range days removable
+    - out-of-range day with items blocks date change
 *   **RLS (Row Level Security):** Core tablolar (trips, profiles vb.) için aktiftir.
 *   **Generated Types:** Veritabanı tipleri `src/types/database.types.ts` dosyasında tutulur ve migration sonrası güncellenir.
 *   **Client Initialization:** Supabase istemcisi `src/lib/supabaseClient.ts` dosyasında merkezi olarak yönetilir.

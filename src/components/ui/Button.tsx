@@ -5,7 +5,8 @@ import {
   ActivityIndicator, 
   TouchableOpacityProps,
   ViewStyle,
-  TextStyle
+  TextStyle,
+  StyleProp
 } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { ThemedText } from '../themed-text';
@@ -15,8 +16,8 @@ interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'outline' | 'ghost';
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 export function Button({ 
