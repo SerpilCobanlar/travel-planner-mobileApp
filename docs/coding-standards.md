@@ -36,3 +36,9 @@ Takım için ortak kodlama standartları ve AI/geliştirici kuralları.
     *   `npm run typecheck`
     *   `npm run lint`
 *   **No Over-engineering:** Gereksiz büyük refactor yapmaktan kaçınılır. Sadece ihtiyaç duyulan kadar kod yazılır.
+
+## Branch Koruması ve Merge Kuralları
+*   **`main`'e direkt push yok:** Tüm değişiklikler feature branch + Pull Request üzerinden gelir. Feature branch'lere push serbesttir.
+*   **1 onay zorunlu:** Her PR, merge edilmeden önce diğer ekip üyesinin onayını alır.
+*   **CI zorunlu:** PR'larda `typecheck-and-lint` kontrolü (GitHub Actions) yeşil olmadan merge edilmez.
+*   **Admin bypass sadece acil durumlar için:** Admin yetkisiyle onaysız merge yalnızca acil durumlarda (ör. bozuk `main`'i düzelten hotfix) yapılır ve diğer ekip üyesine hemen haber verilir.
