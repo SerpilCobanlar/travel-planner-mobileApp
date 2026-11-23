@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -22,14 +22,15 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
 
   const parsedTime = parseTime(value ?? '12:00');
 
-  const handleConfirm = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  // onValueChange fires only for a confirmed selection; cancelling calls onDismiss.
+  const handleValueChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
     if (Platform.OS === 'android') {
       setShow(false);
     }
-    if (event.type === 'set' && selectedDate) {
-      onChange(toTimeString(selectedDate));
-    }
+    onChange(toTimeString(selectedDate));
   };
+
+  const handleDismiss = () => setShow(false);
 
   // iOS renders an inline picker that already shows a time, so an empty value
   // would look selected without being set. Show a placeholder until the user taps it.
@@ -63,7 +64,7 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
               value={parsedTime}
               mode="time"
               display="default"
-              onChange={handleConfirm}
+              onValueChange={handleValueChange}
               themeVariant={activeTheme}
               style={styles.iosPicker}
             />
@@ -87,7 +88,8 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
               value={parsedTime}
               mode="time"
               display="default"
-              onChange={handleConfirm}
+              onValueChange={handleValueChange}
+              onDismiss={handleDismiss}
             />
           )}
         </>

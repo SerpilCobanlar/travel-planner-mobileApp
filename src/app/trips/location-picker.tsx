@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -10,6 +10,9 @@ import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 
 initializeMapbox();
+
+// Istanbul, used when location permission is denied or unavailable.
+const DEFAULT_CENTER: [number, number] = [28.9784, 41.0082];
 
 export default function LocationPickerScreen() {
   const params = useLocalSearchParams();
@@ -25,13 +28,11 @@ export default function LocationPickerScreen() {
   const initialLng = Number.isFinite(parsedLng) ? parsedLng : null;
   const hasInitialCoord = initialLat !== null && initialLng !== null;
 
+  const mapRef = useRef<Mapbox.MapView>(null);
   const [loading, setLoading] = useState(true);
+  const [selecting, setSelecting] = useState(false);
+  // Initial camera position only; the selected point is read from the map on "Select".
   const [centerCoord, setCenterCoord] = useState<[number, number] | null>(
-    hasInitialCoord ? [initialLng, initialLat] : null
-  );
-
-  // The coordinate to return when user clicks 'Select'
-  const [selectedCoord, setSelectedCoord] = useState<[number, number] | null>(
     hasInitialCoord ? [initialLng, initialLat] : null
   );
 
@@ -43,19 +44,14 @@ export default function LocationPickerScreen() {
           if (status === 'granted') {
             const location = await Location.getCurrentPositionAsync({});
             setCenterCoord([location.coords.longitude, location.coords.latitude]);
-            setSelectedCoord([location.coords.longitude, location.coords.latitude]);
           } else {
-            // Default to Istanbul
-            setCenterCoord([28.9784, 41.0082]);
-            setSelectedCoord([28.9784, 41.0082]);
+            setCenterCoord(DEFAULT_CENTER);
           }
         }
       } catch (error) {
         console.warn('LOCATION_PERMISSION_ERROR', error);
-        // Default on error
         if (!hasInitialCoord) {
-          setCenterCoord([28.9784, 41.0082]);
-          setSelectedCoord([28.9784, 41.0082]);
+          setCenterCoord(DEFAULT_CENTER);
         }
       } finally {
         setLoading(false);
@@ -63,20 +59,23 @@ export default function LocationPickerScreen() {
     })();
   }, [hasInitialCoord]);
 
-  const handleRegionDidChange = (e: any) => {
-    if (e?.geometry?.coordinates) {
-      setSelectedCoord(e.geometry.coordinates);
+  // Ask the map for its real center at the moment of selection. Region-change
+  // events are debounced (~500 ms) and not always delivered, so tracking them
+  // saved a stale point when "Select" was tapped right after panning.
+  const handleSelect = async () => {
+    if (selecting) return;
+    setSelecting(true);
+    try {
+      const center = (await mapRef.current?.getCenter()) ?? centerCoord;
+      if (center) {
+        setPickedLocation({ lat: center[1], lng: center[0] });
+      }
+    } catch (error) {
+      console.warn('MAP_GET_CENTER_ERROR', error);
+    } finally {
+      setSelecting(false);
+      router.back();
     }
-  };
-
-  const handleSelect = () => {
-    if (selectedCoord) {
-      setPickedLocation({
-        lat: selectedCoord[1],
-        lng: selectedCoord[0],
-      });
-    }
-    router.back();
   };
 
   if (loading) {
@@ -97,7 +96,7 @@ export default function LocationPickerScreen() {
         {/* The crosshair must be centered on the map only (not map + footer),
             because the selected coordinate is the map's center. */}
         <View style={styles.mapArea}>
-          <Mapbox.MapView style={styles.map} onRegionDidChange={handleRegionDidChange}>
+          <Mapbox.MapView ref={mapRef} style={styles.map}>
             {centerCoord && (
               <Mapbox.Camera
                 zoomLevel={12}
@@ -114,7 +113,7 @@ export default function LocationPickerScreen() {
         </View>
 
         <View style={[styles.footer, { backgroundColor: theme.background }]}>
-          <Button title={t('item.selectThisLocation')} onPress={handleSelect} />
+          <Button title={t('item.selectThisLocation')} onPress={handleSelect} loading={selecting} />
         </View>
       </View>
     </Screen>
