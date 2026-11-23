@@ -245,7 +245,7 @@ export default function EditTripItemScreen() {
       }
 
       // Update
-      const { error: updateError } = await supabase
+      const { data: updatedRows, error: updateError } = await supabase
         .from('trip_items')
         .update({
           type: selectedType,
@@ -260,9 +260,15 @@ export default function EditTripItemScreen() {
         })
         .eq('id', itemId)
         .eq('trip_id', id)
-        .eq('trip_day_id', dayId);
+        .eq('trip_day_id', dayId)
+        .select('id');
 
       if (updateError) throw updateError;
+
+      // RLS-blocked updates don't error; they just affect 0 rows.
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error(t('common.noPermission'));
+      }
 
       // Success - back to day detail
       if (router.canGoBack()) {
@@ -403,7 +409,7 @@ export default function EditTripItemScreen() {
           <View style={styles.locationContainer}>
             <View style={styles.row}>
               <ThemedText style={styles.label}>{t('item.location')}</ThemedText>
-              {latitude && longitude && (
+              {latitude !== null && longitude !== null && (
                 <TouchableOpacity onPress={() => {
                   setLatitude(null);
                   setLongitude(null);
@@ -416,7 +422,7 @@ export default function EditTripItemScreen() {
               )}
             </View>
 
-            {latitude && longitude ? (
+            {latitude !== null && longitude !== null ? (
               <ThemedText style={styles.locationText}>
                 {latitude.toFixed(4)}, {longitude.toFixed(4)}
               </ThemedText>

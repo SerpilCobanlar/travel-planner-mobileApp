@@ -89,7 +89,7 @@ export default function EditTripScreen() {
 
     setSaving(true);
     try {
-      const { error: updateError } = await supabase
+      const { data: updatedRows, error: updateError } = await supabase
         .from('trips')
         .update({
           title: trimmedTitle,
@@ -98,13 +98,19 @@ export default function EditTripScreen() {
           end_date: endDate,
           is_public: isPublic,
         })
-        .eq('id', id as string);
+        .eq('id', id as string)
+        .select('id');
 
       if (updateError) {
         if (updateError.message.includes('DATE_RANGE_REJECTED_HAS_ITEMS')) {
           throw new Error(t('trip.dateRangeRejectedItems'));
         }
         throw updateError;
+      }
+
+      // RLS-blocked updates don't error; they just affect 0 rows.
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error(t('common.noPermission'));
       }
 
       if (router.canGoBack()) {

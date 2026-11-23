@@ -352,7 +352,7 @@ export default function AddTripItemScreen() {
           <View style={styles.locationContainer}>
             <View style={styles.row}>
               <ThemedText style={styles.label}>{t('item.location')}</ThemedText>
-              {latitude && longitude && (
+              {latitude !== null && longitude !== null && (
                 <TouchableOpacity onPress={() => {
                   setLatitude(null);
                   setLongitude(null);
@@ -364,7 +364,7 @@ export default function AddTripItemScreen() {
               )}
             </View>
 
-            {latitude && longitude ? (
+            {latitude !== null && longitude !== null ? (
               <ThemedText style={styles.locationText}>
                 {latitude.toFixed(4)}, {longitude.toFixed(4)}
               </ThemedText>
