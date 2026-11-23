@@ -55,7 +55,18 @@ export const dictionaries = {
       emptyMyTrips: 'Henüz hiç gezin yok. Hemen bir tane oluştur!',
       publicTrips: 'Herkese Açık Geziler',
       myTrips: 'Gezilerim',
-      blogDescription: 'Seyahat yazıları ve ipuçları burada olacak.',
+    },
+    // Blog
+    blog: {
+      comingSoon: 'Yakında',
+      title: 'Gezi günlükleri geliyor',
+      description: 'Gezilerini anılar, fotoğraflar ve kartpostallarla bir günlüğe dönüştürüp paylaşabileceksin.',
+      featureJournalTitle: 'Gezi günlüğü',
+      featureJournalText: 'Her günün planını notlar ve fotoğraflarla bir hikâyeye çevir.',
+      featurePostcardsTitle: 'Kartpostallar',
+      featurePostcardsText: 'Gezdiğin yerleri kartpostal olarak sakla, arkasına anını yaz.',
+      featureShareTitle: 'Paylaş ve keşfet',
+      featureShareText: 'Herkese açık gezilerini paylaş, başkalarının günlüklerinden ilham al.',
     },
     // Trip
     trip: {
@@ -218,7 +229,18 @@ export const dictionaries = {
       emptyMyTrips: 'You have no trips yet. Create one now!',
       publicTrips: 'Public Trips',
       myTrips: 'My Trips',
-      blogDescription: 'Travel articles and tips will be here.',
+    },
+    // Blog
+    blog: {
+      comingSoon: 'Coming soon',
+      title: 'Travel journals are on the way',
+      description: 'Turn your trips into a journal with memories, photos and postcards, and share them.',
+      featureJournalTitle: 'Travel journal',
+      featureJournalText: "Turn each day's plan into a story with notes and photos.",
+      featurePostcardsTitle: 'Postcards',
+      featurePostcardsText: 'Keep the places you visited as postcards and write a memory on the back.',
+      featureShareTitle: 'Share and discover',
+      featureShareText: "Share your public trips and get inspired by other travelers' journals.",
     },
     // Trip
     trip: {
