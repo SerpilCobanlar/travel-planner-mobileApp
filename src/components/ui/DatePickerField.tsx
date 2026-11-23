@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, useColorScheme } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { usePreferences } from '@/context/PreferencesContext';
 import { BorderRadius } from '@/constants/theme';
 import { IconSymbol } from './IconSymbol';
+
+const formatDate = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
 interface DatePickerFieldProps {
   label: string;
@@ -14,7 +22,7 @@ interface DatePickerFieldProps {
 
 export function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const theme = useTheme();
-  const colorScheme = useColorScheme();
+  const { activeTheme } = usePreferences();
   const [show, setShow] = useState(false);
 
   let parsedDate = new Date();
@@ -23,15 +31,24 @@ export function DatePickerField({ label, value, onChange }: DatePickerFieldProps
     parsedDate = new Date(y, m - 1, d);
   }
 
-  const handleConfirm = (event: any, selectedDate?: Date) => {
+  const handleConfirm = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShow(false);
     }
-    if (selectedDate) {
-      const y = selectedDate.getFullYear();
-      const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const d = String(selectedDate.getDate()).padStart(2, '0');
-      onChange(`${y}-${m}-${d}`);
+    // Android also calls onChange when the dialog is cancelled ('dismissed'),
+    // passing the current value; only a confirmed selection should update.
+    if (event.type === 'set' && selectedDate) {
+      onChange(formatDate(selectedDate));
+    }
+  };
+
+  // iOS renders an inline picker that already shows a date, so an empty value
+  // would look selected without being set. Show a placeholder until the user taps it.
+  const handlePlaceholderPress = () => {
+    if (Platform.OS === 'ios') {
+      onChange(formatDate(new Date()));
+    } else {
+      setShow(true);
     }
   };
 
@@ -40,23 +57,23 @@ export function DatePickerField({ label, value, onChange }: DatePickerFieldProps
   return (
     <View style={styles.container}>
       <ThemedText style={styles.label}>{label}</ThemedText>
-      
-      {Platform.OS === 'ios' ? (
+
+      {Platform.OS === 'ios' && value ? (
         <View style={[styles.iosContainer, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
           <DateTimePicker
             value={parsedDate}
             mode="date"
             display="default"
             onChange={handleConfirm}
-            themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
+            themeVariant={activeTheme}
             style={styles.iosPicker}
           />
         </View>
       ) : (
         <>
-          <TouchableOpacity 
-            style={[styles.input, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]} 
-            onPress={() => setShow(true)}
+          <TouchableOpacity
+            style={[styles.input, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+            onPress={handlePlaceholderPress}
             activeOpacity={0.7}
           >
             <ThemedText style={{ color: value ? theme.text : theme.textSecondary }}>

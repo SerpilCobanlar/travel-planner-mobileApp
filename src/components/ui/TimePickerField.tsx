@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform, useColorScheme } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { usePreferences } from '@/context/PreferencesContext';
 import { BorderRadius } from '@/constants/theme';
 import { IconSymbol } from './IconSymbol';
 
@@ -15,7 +16,7 @@ interface TimePickerFieldProps {
 
 export function TimePickerField({ label, value, onChange, allowClear = true }: TimePickerFieldProps) {
   const theme = useTheme();
-  const colorScheme = useColorScheme();
+  const { activeTheme } = usePreferences();
   const [show, setShow] = useState(false);
 
   let parsedTime = new Date();
@@ -26,7 +27,7 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
     parsedTime.setHours(12, 0, 0, 0);
   }
 
-  const handleConfirm = (event: any, selectedDate?: Date) => {
+  const handleConfirm = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShow(false);
     }
@@ -34,8 +35,16 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
       const h = String(selectedDate.getHours()).padStart(2, '0');
       const m = String(selectedDate.getMinutes()).padStart(2, '0');
       onChange(`${h}:${m}`);
-    } else if (event.type === 'dismiss') {
-      // Do nothing
+    }
+  };
+
+  // iOS renders an inline picker that already shows a time, so an empty value
+  // would look selected without being set. Show a placeholder until the user taps it.
+  const handlePlaceholderPress = () => {
+    if (Platform.OS === 'ios') {
+      onChange('12:00');
+    } else {
+      setShow(true);
     }
   };
 
@@ -54,7 +63,7 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
         )}
       </View>
       
-      {Platform.OS === 'ios' ? (
+      {Platform.OS === 'ios' && value ? (
         <View style={styles.iosRow}>
           <View style={[styles.iosContainer, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
             <DateTimePicker
@@ -62,16 +71,16 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
               mode="time"
               display="default"
               onChange={handleConfirm}
-              themeVariant={colorScheme === 'dark' ? 'dark' : 'light'}
+              themeVariant={activeTheme}
               style={styles.iosPicker}
             />
           </View>
         </View>
       ) : (
         <>
-          <TouchableOpacity 
-            style={[styles.input, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]} 
-            onPress={() => setShow(true)}
+          <TouchableOpacity
+            style={[styles.input, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+            onPress={handlePlaceholderPress}
             activeOpacity={0.7}
           >
             <ThemedText style={{ color: value ? theme.text : theme.textSecondary }}>

@@ -1,5 +1,3 @@
-// @ts-ignore
-// eslint-disable-next-line import/no-unresolved
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolWeight } from 'expo-symbols';
 import React from 'react';
