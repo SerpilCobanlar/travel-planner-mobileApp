@@ -1,3 +1,8 @@
+// Trip date-range edit / trip_days sync tests.
+// Runs ONLY against the local Supabase stack (never the remote project):
+//   npx supabase start
+//   node supabase/tests/trip-days-sync.test.mjs
+// The anon key below is Supabase's public local-demo key, not a secret.
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'http://127.0.0.1:54321';

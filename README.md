@@ -1,56 +1,79 @@
-# Welcome to your Expo app 👋
+# Travel Planner
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Arkadaş gruplarıyla geziyi harita üzerinde gün gün birlikte planlamaya yarayan mobil uygulama. Trip oluşturulunca günler otomatik açılır; her güne konaklama, ulaşım, yemek, aktivite gibi planlar (saat, maliyet, konum) eklenir ve günün planları haritada rota olarak gösterilir.
 
-## Get started
+Ürün vizyonu ve yol haritası: [docs/product.md](docs/product.md) · [Issues](https://github.com/SerpilCobanlar/travel-planner-mobileApp/issues) · [Milestones](https://github.com/SerpilCobanlar/travel-planner-mobileApp/milestones)
 
-1. Install dependencies
+## Teknoloji
 
+| Alan | Kullanılan |
+|---|---|
+| Uygulama | Expo (SDK 57), React Native, TypeScript (strict) |
+| Navigasyon | Expo Router (native tabs) |
+| Backend | Supabase: PostgreSQL, Auth, RLS |
+| Harita | Mapbox (`@rnmapbox/maps`, Directions API), `expo-location` |
+| Build | EAS development build |
+
+Ayrıntılar: [docs/architecture.md](docs/architecture.md) · Kurallar: [docs/coding-standards.md](docs/coding-standards.md)
+
+## Kurulum
+
+**Gereksinimler:** Node 22 (`.nvmrc`: 22.14.0), Android cihaz veya emülatör.
+
+> Mapbox ve tarih seçici native paketler olduğu için uygulama **Expo Go ile çalışmaz**; development build gerekir. Native bir paket eklendiğinde/güncellendiğinde yeni build alınmalıdır.
+
+1. Bağımlılıkları kur:
    ```bash
    npm install
    ```
-
-2. Start the app
-
+2. `.env.example`'ı `.env.local` olarak kopyala ve değerleri doldur (Supabase proje URL'i ve anon key, Mapbox public token). `.env.local` git'e girmez.
+3. Development build al ve telefona kur (ilk seferde ve native paket değişince):
    ```bash
-   npx expo start
+   npx eas-cli build --profile development --platform android
+   ```
+4. Geliştirme sunucusunu başlat:
+   ```bash
+   npx expo start --dev-client
    ```
 
-In the output, you'll find options to open the app in a
+## Komutlar
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+| Komut | Ne yapar |
+|---|---|
+| `npm start` | Expo geliştirme sunucusu |
+| `npm run typecheck` | TypeScript kontrolü (`tsc --noEmit`) |
+| `npm run lint` | ESLint (`expo lint`) |
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Her PR'da typecheck ve lint GitHub Actions ile otomatik çalışır.
 
-## Get a fresh project
+## Veritabanı (Supabase)
 
-When you're ready, run:
+- Şema değişiklikleri **sadece** `supabase/migrations/` altındaki migration dosyalarıyla yapılır; Dashboard'dan elle şema değiştirilmez.
+- Migration sonrası tipler yeniden üretilir ve `src/types/database.types.ts` elle düzenlenmez:
+  ```bash
+  npx supabase gen types typescript --linked > src/types/database.types.ts
+  ```
+- Veritabanı testleri yalnızca **lokal** Supabase'e karşı çalışır:
+  ```bash
+  npx supabase start
+  node supabase/tests/trip-days-sync.test.mjs
+  ```
 
-```bash
-npm run reset-project
+## Çalışma düzeni
+
+- `main` korumalıdır: değişiklikler `feat/…`, `fix/…`, `chore/…` branch'lerinde yapılır ve PR ile gelir.
+- Her PR diğer ekip üyesinin onayını ve yeşil CI'ı gerektirir. PR açıklamasına `Closes #numara` yazılınca ilgili issue merge ile kapanır.
+- Güne başlarken `git pull origin main`; branch'ler kısa ömürlü tutulur.
+
+## Klasör yapısı
+
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+src/app/          Ekranlar (Expo Router)
+src/components/   Yeniden kullanılabilir bileşenler (ui/ altında temel bileşenler)
+src/context/      Auth ve tercih (tema/dil) context'leri
+src/lib/          Supabase, Mapbox ve yardımcı servisler
+src/localization/ TR/EN çeviriler
+src/types/        Üretilmiş veritabanı tipleri ve global tip tanımları
+supabase/         Migration'lar, lokal config ve testler
+docs/             Ürün, mimari ve kodlama dokümanları
+```
