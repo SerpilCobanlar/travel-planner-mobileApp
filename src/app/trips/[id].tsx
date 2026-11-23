@@ -7,6 +7,7 @@ import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
+import { formatDayRange } from '@/lib/date';
 import type { Database } from '@/types/database.types';
 import TripDayCard from '@/components/TripDayCard';
 import { Button } from '@/components/ui/Button';
@@ -104,13 +105,6 @@ export default function TripDetailScreen() {
     }, [fetchTripDetails])
   );
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    if (!y || !m || !d) return dateStr;
-    return `${d}.${m}.${y}`;
-  };
-
   const renderHeader = () => {
     if (!trip) return null;
     const isPublicText = trip.is_public ? t('trip.isPublic') : t('trip.isPrivate');
@@ -134,7 +128,7 @@ export default function TripDetailScreen() {
         )}
 
         <ThemedText style={styles.dateRow} type="default" themeColor="textSecondary">
-          {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
+          {formatDayRange(trip.start_date, trip.end_date)}
         </ThemedText>
 
         <ThemedText style={styles.dailyPlanTitle} type="subtitle">

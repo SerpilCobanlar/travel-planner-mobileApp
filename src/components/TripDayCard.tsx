@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import type { Database } from '@/types/database.types';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
+import { formatDayDate, formatTime } from '@/lib/date';
 
 type TripDay = Database['public']['Tables']['trip_days']['Row'];
 type TripItem = Database['public']['Tables']['trip_items']['Row'];
@@ -19,13 +20,6 @@ export default function TripDayCard({ day, items = [], onPress }: TripDayCardPro
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    if (!y || !m || !d) return dateStr;
-    return `${d}.${m}.${y}`;
-  };
-
   const CardContent = (
     <Card style={styles.card}>
       <View style={styles.header}>
@@ -33,7 +27,7 @@ export default function TripDayCard({ day, items = [], onPress }: TripDayCardPro
           {t('trip.day')} {day.day_number}
         </ThemedText>
         <ThemedText style={styles.date} type="default" themeColor="textSecondary">
-          {formatDate(day.day_date)}
+          {formatDayDate(day.day_date)}
         </ThemedText>
       </View>
       
@@ -57,12 +51,8 @@ export default function TripDayCard({ day, items = [], onPress }: TripDayCardPro
         </View>
       ) : (
         <View style={[styles.previewContainer, { borderColor: theme.border }]}>
-          {items.slice(0, 3).map((item, index) => {
-            let timeStr = '';
-            if (item.start_at) {
-              const d = new Date(item.start_at);
-              timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-            }
+          {items.slice(0, 3).map((item) => {
+            const timeStr = formatTime(item.start_at);
             return (
               <View key={item.id} style={styles.previewItem}>
                 <ThemedText style={[styles.previewTime, { color: theme.primary }]} type="smallBold">
