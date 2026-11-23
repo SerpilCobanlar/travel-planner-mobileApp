@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import type { Database } from '@/types/database.types';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
+import { formatDayRange } from '@/lib/date';
 
 type Trip = Database['public']['Tables']['trips']['Row'];
 
@@ -17,13 +18,6 @@ interface TripCardProps {
 export default function TripCard({ trip, onPress }: TripCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    if (!y || !m || !d) return dateStr;
-    return `${d}.${m}.${y}`;
-  };
 
   const isPublicText = trip.is_public ? t('trip.isPublic') : t('trip.isPrivate');
   const badgeColor = trip.is_public ? theme.primary : theme.textSecondary;
@@ -47,7 +41,7 @@ export default function TripCard({ trip, onPress }: TripCardProps) {
 
       <View style={styles.dateRow}>
         <ThemedText type="default" themeColor="textSecondary" style={styles.dateText}>
-          {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
+          {formatDayRange(trip.start_date, trip.end_date)}
         </ThemedText>
       </View>
 

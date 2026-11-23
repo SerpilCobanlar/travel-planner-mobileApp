@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { usePreferences } from '@/context/PreferencesContext';
 import { BorderRadius } from '@/constants/theme';
+import { parseTime, toTimeString } from '@/lib/date';
 import { IconSymbol } from './IconSymbol';
 
 interface TimePickerFieldProps {
@@ -19,22 +20,14 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
   const { activeTheme } = usePreferences();
   const [show, setShow] = useState(false);
 
-  let parsedTime = new Date();
-  if (value) {
-    const [h, m] = value.split(':').map(Number);
-    parsedTime.setHours(h, m, 0, 0);
-  } else {
-    parsedTime.setHours(12, 0, 0, 0);
-  }
+  const parsedTime = parseTime(value ?? '12:00');
 
   const handleConfirm = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShow(false);
     }
     if (event.type === 'set' && selectedDate) {
-      const h = String(selectedDate.getHours()).padStart(2, '0');
-      const m = String(selectedDate.getMinutes()).padStart(2, '0');
-      onChange(`${h}:${m}`);
+      onChange(toTimeString(selectedDate));
     }
   };
 

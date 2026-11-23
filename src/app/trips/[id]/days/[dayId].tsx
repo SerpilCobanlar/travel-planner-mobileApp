@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
+import { formatDayDate } from '@/lib/date';
 import { useAuth } from '@/context/AuthContext';
 import TripItemCard from '@/components/TripItemCard';
 import type { Database } from '@/types/database.types';
@@ -134,13 +135,6 @@ export default function DayDetailScreen() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const [y, m, d] = dateStr.split('-');
-    if (!y || !m || !d) return dateStr;
-    return `${d}.${m}.${y}`;
-  };
-
   const renderHeader = () => {
     if (!trip || !day) return null;
 
@@ -157,7 +151,7 @@ export default function DayDetailScreen() {
             {t('trip.day')} {day.day_number}
           </ThemedText>
           <ThemedText style={styles.dayDate} type="subtitle" themeColor="textSecondary">
-            {formatDate(day.day_date)}
+            {formatDayDate(day.day_date)}
           </ThemedText>
         </View>
 

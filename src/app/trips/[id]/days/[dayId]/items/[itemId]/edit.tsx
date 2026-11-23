@@ -11,6 +11,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
+import { combineDayAndTime, formatTime } from '@/lib/date';
 
 const ITEM_TYPES = [
   'place',
@@ -89,23 +90,8 @@ export default function EditTripItemScreen() {
       setCostStr(data.cost !== null ? data.cost.toString() : '');
       setCurrency(data.currency || null);
 
-      if (data.start_at) {
-        const d = new Date(data.start_at);
-        const hh = d.getHours().toString().padStart(2, '0');
-        const mm = d.getMinutes().toString().padStart(2, '0');
-        setStartTime(`${hh}:${mm}`);
-      } else {
-        setStartTime(null);
-      }
-
-      if (data.end_at) {
-        const d = new Date(data.end_at);
-        const hh = d.getHours().toString().padStart(2, '0');
-        const mm = d.getMinutes().toString().padStart(2, '0');
-        setEndTime(`${hh}:${mm}`);
-      } else {
-        setEndTime(null);
-      }
+      setStartTime(formatTime(data.start_at) || null);
+      setEndTime(formatTime(data.end_at) || null);
 
       setLatitude(data.latitude !== undefined ? data.latitude : null);
       setLongitude(data.longitude !== undefined ? data.longitude : null);
@@ -221,28 +207,9 @@ export default function EditTripItemScreen() {
         throw new Error('Geçersiz gezi gün eşleşmesi');
       }
 
-      // Parse Time
-      let finalStartAt = null;
-      let finalEndAt = null;
-
-      if (dayData && dayData.day_date) {
-        const [y, m, d] = dayData.day_date.split('-');
-        const year = parseInt(y, 10);
-        const month = parseInt(m, 10);
-        const day = parseInt(d, 10);
-
-        if (validStartTime) {
-          const [sh, sm] = validStartTime.split(':');
-          const dateStart = new Date(year, month - 1, day, parseInt(sh, 10), parseInt(sm, 10));
-          finalStartAt = dateStart.toISOString();
-        }
-
-        if (validEndTime) {
-          const [eh, em] = validEndTime.split(':');
-          const dateEnd = new Date(year, month - 1, day, parseInt(eh, 10), parseInt(em, 10));
-          finalEndAt = dateEnd.toISOString();
-        }
-      }
+      // Day + HH:mm (device local time) → ISO timestamps
+      const finalStartAt = validStartTime ? combineDayAndTime(dayData.day_date, validStartTime) : null;
+      const finalEndAt = validEndTime ? combineDayAndTime(dayData.day_date, validEndTime) : null;
 
       // Update
       const { data: updatedRows, error: updateError } = await supabase

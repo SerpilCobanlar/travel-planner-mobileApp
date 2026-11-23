@@ -11,6 +11,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
+import { combineDayAndTime } from '@/lib/date';
 
 const ITEM_TYPES = [
   'place',
@@ -180,28 +181,9 @@ export default function AddTripItemScreen() {
       const maxSortOrder = itemsData.length > 0 ? itemsData[0].sort_order : -1;
       const nextSortOrder = maxSortOrder + 1;
 
-      // 3. Parse Time
-      let finalStartAt = null;
-      let finalEndAt = null;
-
-      if (dayData && dayData.day_date) {
-        const [y, m, d] = dayData.day_date.split('-');
-        const year = parseInt(y, 10);
-        const month = parseInt(m, 10);
-        const day = parseInt(d, 10);
-
-        if (validStartTime) {
-          const [sh, sm] = validStartTime.split(':');
-          const dateStart = new Date(year, month - 1, day, parseInt(sh, 10), parseInt(sm, 10));
-          finalStartAt = dateStart.toISOString();
-        }
-
-        if (validEndTime) {
-          const [eh, em] = validEndTime.split(':');
-          const dateEnd = new Date(year, month - 1, day, parseInt(eh, 10), parseInt(em, 10));
-          finalEndAt = dateEnd.toISOString();
-        }
-      }
+      // 3. Day + HH:mm (device local time) → ISO timestamps
+      const finalStartAt = validStartTime ? combineDayAndTime(dayData.day_date, validStartTime) : null;
+      const finalEndAt = validEndTime ? combineDayAndTime(dayData.day_date, validEndTime) : null;
 
       // 4. Insert
       const { error: insertError } = await supabase

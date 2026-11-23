@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import type { Database } from '@/types/database.types';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
+import { formatTimeRange } from '@/lib/date';
 
 type TripItem = Database['public']['Tables']['trip_items']['Row'];
 
@@ -24,20 +25,7 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMa
   const typeTranslationKey = `item.types.${item.type}` as TranslationKey;
   const translatedType = t(typeTranslationKey);
 
-  let timeString = '';
-  if (item.start_at) {
-    const sd = new Date(item.start_at);
-    const shh = sd.getHours().toString().padStart(2, '0');
-    const smm = sd.getMinutes().toString().padStart(2, '0');
-    timeString = `${shh}:${smm}`;
-
-    if (item.end_at) {
-      const ed = new Date(item.end_at);
-      const ehh = ed.getHours().toString().padStart(2, '0');
-      const emm = ed.getMinutes().toString().padStart(2, '0');
-      timeString += ` - ${ehh}:${emm}`;
-    }
-  }
+  const timeString = formatTimeRange(item.start_at, item.end_at);
 
   const handleDelete = () => {
     Alert.alert(
