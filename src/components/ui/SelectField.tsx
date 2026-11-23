@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, FlatList, SafeAreaView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { BorderRadius } from '@/constants/theme';
@@ -21,6 +22,7 @@ interface SelectFieldProps {
 
 export function SelectField({ label, value, options, onChange, placeholder = 'Seçiniz', disabled }: SelectFieldProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
 
   const selectedOption = options.find((o) => o.value === value);
@@ -75,7 +77,8 @@ export function SelectField({ label, value, options, onChange, placeholder = 'Se
                 </TouchableOpacity>
               )}
             />
-            <SafeAreaView />
+            {/* Keep the last option above the home indicator / gesture bar */}
+            <View style={{ height: insets.bottom }} />
           </View>
         </View>
       </Modal>

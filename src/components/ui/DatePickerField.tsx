@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -21,16 +21,15 @@ export function DatePickerField({ label, value, onChange }: DatePickerFieldProps
 
   const parsedDate = value ? parseDayDate(value) : new Date();
 
-  const handleConfirm = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  // onValueChange fires only for a confirmed selection; cancelling calls onDismiss.
+  const handleValueChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
     if (Platform.OS === 'android') {
       setShow(false);
     }
-    // Android also calls onChange when the dialog is cancelled ('dismissed'),
-    // passing the current value; only a confirmed selection should update.
-    if (event.type === 'set' && selectedDate) {
-      onChange(toDayString(selectedDate));
-    }
+    onChange(toDayString(selectedDate));
   };
+
+  const handleDismiss = () => setShow(false);
 
   // iOS renders an inline picker that already shows a date, so an empty value
   // would look selected without being set. Show a placeholder until the user taps it.
@@ -54,7 +53,7 @@ export function DatePickerField({ label, value, onChange }: DatePickerFieldProps
             value={parsedDate}
             mode="date"
             display="default"
-            onChange={handleConfirm}
+            onValueChange={handleValueChange}
             themeVariant={activeTheme}
             style={styles.iosPicker}
           />
@@ -77,7 +76,8 @@ export function DatePickerField({ label, value, onChange }: DatePickerFieldProps
               value={parsedDate}
               mode="date"
               display="default"
-              onChange={handleConfirm}
+              onValueChange={handleValueChange}
+              onDismiss={handleDismiss}
             />
           )}
         </>
