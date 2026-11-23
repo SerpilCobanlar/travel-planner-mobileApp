@@ -18,23 +18,27 @@ export default function LocationPickerScreen() {
   const theme = useTheme();
 
   // Read initial coordinates if provided
-  const initialLat = params.lat ? parseFloat(params.lat as string) : null;
-  const initialLng = params.lng ? parseFloat(params.lng as string) : null;
+  // Note: 0 is a valid latitude/longitude, so check for null, not truthiness.
+  const parsedLat = params.lat ? parseFloat(params.lat as string) : NaN;
+  const parsedLng = params.lng ? parseFloat(params.lng as string) : NaN;
+  const initialLat = Number.isFinite(parsedLat) ? parsedLat : null;
+  const initialLng = Number.isFinite(parsedLng) ? parsedLng : null;
+  const hasInitialCoord = initialLat !== null && initialLng !== null;
 
   const [loading, setLoading] = useState(true);
   const [centerCoord, setCenterCoord] = useState<[number, number] | null>(
-    initialLng && initialLat ? [initialLng, initialLat] : null
+    hasInitialCoord ? [initialLng, initialLat] : null
   );
-  
+
   // The coordinate to return when user clicks 'Select'
   const [selectedCoord, setSelectedCoord] = useState<[number, number] | null>(
-    initialLng && initialLat ? [initialLng, initialLat] : null
+    hasInitialCoord ? [initialLng, initialLat] : null
   );
 
   useEffect(() => {
     (async () => {
       try {
-        if (!initialLat || !initialLng) {
+        if (!hasInitialCoord) {
           const { status } = await Location.requestForegroundPermissionsAsync();
           if (status === 'granted') {
             const location = await Location.getCurrentPositionAsync({});
@@ -49,7 +53,7 @@ export default function LocationPickerScreen() {
       } catch (error) {
         console.warn('LOCATION_PERMISSION_ERROR', error);
         // Default on error
-        if (!initialLat || !initialLng) {
+        if (!hasInitialCoord) {
           setCenterCoord([28.9784, 41.0082]);
           setSelectedCoord([28.9784, 41.0082]);
         }
@@ -57,7 +61,7 @@ export default function LocationPickerScreen() {
         setLoading(false);
       }
     })();
-  }, [initialLat, initialLng]);
+  }, [hasInitialCoord]);
 
   const handleRegionDidChange = (e: any) => {
     if (e?.geometry?.coordinates) {
@@ -87,23 +91,26 @@ export default function LocationPickerScreen() {
   }
 
   return (
-    <Screen safeArea>
+    <Screen safeArea={false} padded={false}>
       <Stack.Screen options={{ title: t('item.chooseOnMap'), headerBackTitle: 'Geri' }} />
       <View style={styles.container}>
-        <Mapbox.MapView style={styles.map} onRegionDidChange={handleRegionDidChange}>
-          {centerCoord && (
-            <Mapbox.Camera
-              zoomLevel={12}
-              centerCoordinate={centerCoord}
-              animationDuration={0}
-            />
-          )}
-        </Mapbox.MapView>
-        
-        {/* Fixed Crosshair */}
-        <View style={styles.crosshairContainer} pointerEvents="none">
-          <View style={[styles.crosshairVertical, { backgroundColor: theme.primary }]} />
-          <View style={[styles.crosshairHorizontal, { backgroundColor: theme.primary }]} />
+        {/* The crosshair must be centered on the map only (not map + footer),
+            because the selected coordinate is the map's center. */}
+        <View style={styles.mapArea}>
+          <Mapbox.MapView style={styles.map} onRegionDidChange={handleRegionDidChange}>
+            {centerCoord && (
+              <Mapbox.Camera
+                zoomLevel={12}
+                centerCoordinate={centerCoord}
+                animationDuration={0}
+              />
+            )}
+          </Mapbox.MapView>
+
+          <View style={styles.crosshairContainer} pointerEvents="none">
+            <View style={[styles.crosshairVertical, { backgroundColor: theme.primary }]} />
+            <View style={[styles.crosshairHorizontal, { backgroundColor: theme.primary }]} />
+          </View>
         </View>
 
         <View style={[styles.footer, { backgroundColor: theme.background }]}>
@@ -121,6 +128,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   container: {
+    flex: 1,
+  },
+  mapArea: {
     flex: 1,
   },
   map: {

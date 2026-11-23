@@ -23,6 +23,7 @@ export const dictionaries = {
       hasAccount: 'Zaten hesabınız var mı? Giriş Yap',
       emailRequired: 'E-posta adresi boş olamaz',
       emailInvalid: 'Geçerli bir e-posta adresi girin',
+      invalidCredentials: 'E-posta veya şifre hatalı.',
       passwordRequired: 'Şifre boş olamaz',
       passwordLength: 'Şifre en az 8 karakter olmalıdır',
       passwordMatch: 'Şifreler eşleşmiyor',
@@ -51,6 +52,7 @@ export const dictionaries = {
     // Common
     common: {
       loading: 'Yükleniyor...',
+      noPermission: 'Bu işlem için yetkiniz yok ya da kayıt artık mevcut değil.',
       emptyTrips: 'Henüz herkese açık bir gezi planı bulunmuyor.',
       emptyMyTrips: 'Henüz hiç gezin yok. Hemen bir tane oluştur!',
       publicTrips: 'Herkese Açık Geziler',
@@ -71,6 +73,7 @@ export const dictionaries = {
     // Trip
     trip: {
       newTrip: 'Yeni Gezi',
+      back: 'Geri',
       createTrip: 'Gezi Oluştur',
       title: 'Başlık',
       description: 'Açıklama',
@@ -132,7 +135,8 @@ export const dictionaries = {
       currency: 'Para Birimi',
       emptyDay: 'Bu gün için henüz plan eklenmedi.',
       fetchError: 'Planlar yüklenemedi.',
-      invalidCurrency: 'Geçersiz para birimi (örn. TRY, USD)',
+      invalidCurrency: 'Geçersiz para birimi.',
+      currencyRequired: 'Para birimi seçmelisiniz.',
       negativeCost: 'Tutar 0 veya daha büyük olmalıdır',
       titleTooShort: 'Başlık en az 2 karakter olmalıdır',
       invalidTime: 'Geçerli bir saat girin (HH:mm).',
@@ -197,6 +201,7 @@ export const dictionaries = {
       hasAccount: 'Already have an account? Login',
       emailRequired: 'Email cannot be empty',
       emailInvalid: 'Enter a valid email address',
+      invalidCredentials: 'Incorrect email or password.',
       passwordRequired: 'Password cannot be empty',
       passwordLength: 'Password must be at least 8 characters long',
       passwordMatch: 'Passwords do not match',
@@ -225,6 +230,7 @@ export const dictionaries = {
     // Common
     common: {
       loading: 'Loading...',
+      noPermission: 'You do not have permission for this, or the record no longer exists.',
       emptyTrips: 'There are no public trip plans yet.',
       emptyMyTrips: 'You have no trips yet. Create one now!',
       publicTrips: 'Public Trips',
@@ -245,6 +251,7 @@ export const dictionaries = {
     // Trip
     trip: {
       newTrip: 'New Trip',
+      back: 'Back',
       createTrip: 'Create Trip',
       title: 'Title',
       description: 'Description',
@@ -306,7 +313,8 @@ export const dictionaries = {
       currency: 'Currency',
       emptyDay: 'No plans have been added for this day yet.',
       fetchError: 'Unable to load plans.',
-      invalidCurrency: 'Invalid currency (e.g. TRY, USD)',
+      invalidCurrency: 'Invalid currency.',
+      currencyRequired: 'Please select a currency.',
       negativeCost: 'Cost must be 0 or greater',
       titleTooShort: 'Title must be at least 2 characters',
       invalidTime: 'Enter a valid time (HH:mm).',
