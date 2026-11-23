@@ -110,16 +110,23 @@ export default function DayDetailScreen() {
 
   const handleDeleteItem = async (item: TripItem) => {
     try {
-      const { error: deleteError } = await supabase
+      const { data: deletedRows, error: deleteError } = await supabase
         .from('trip_items')
         .delete()
         .eq('id', item.id)
         .eq('trip_id', id)
-        .eq('trip_day_id', dayId);
+        .eq('trip_day_id', dayId)
+        .select('id');
 
       if (deleteError) throw deleteError;
 
-      // Optimistic remove
+      // RLS-blocked deletes don't error; they just affect 0 rows.
+      if (!deletedRows || deletedRows.length === 0) {
+        setError(t('common.noPermission'));
+        return;
+      }
+
+      // Remove from the list
       setItems((prev) => prev.filter((i) => i.id !== item.id));
     } catch (err) {
       console.error('DELETE_TRIP_ITEM_ERROR', err);

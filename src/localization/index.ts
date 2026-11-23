@@ -52,6 +52,7 @@ export const dictionaries = {
     // Common
     common: {
       loading: 'Yükleniyor...',
+      noPermission: 'Bu işlem için yetkiniz yok ya da kayıt artık mevcut değil.',
       emptyTrips: 'Henüz herkese açık bir gezi planı bulunmuyor.',
       emptyMyTrips: 'Henüz hiç gezin yok. Hemen bir tane oluştur!',
       publicTrips: 'Herkese Açık Geziler',
@@ -218,6 +219,7 @@ export const dictionaries = {
     // Common
     common: {
       loading: 'Loading...',
+      noPermission: 'You do not have permission for this, or the record no longer exists.',
       emptyTrips: 'There are no public trip plans yet.',
       emptyMyTrips: 'You have no trips yet. Create one now!',
       publicTrips: 'Public Trips',

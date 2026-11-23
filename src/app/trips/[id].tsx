@@ -180,12 +180,20 @@ export default function TripDetailScreen() {
             if (isDeleting) return;
             try {
               setIsDeleting(true);
-              const { error: deleteError } = await supabase
+              const { data: deletedRows, error: deleteError } = await supabase
                 .from('trips')
                 .delete()
-                .eq('id', id as string);
+                .eq('id', id as string)
+                .select('id');
 
               if (deleteError) throw deleteError;
+
+              // RLS-blocked deletes don't error; they just affect 0 rows.
+              if (!deletedRows || deletedRows.length === 0) {
+                Alert.alert(t('auth.error'), t('common.noPermission'));
+                setIsDeleting(false);
+                return;
+              }
 
               router.dismissAll();
               router.replace('/(tabs)');

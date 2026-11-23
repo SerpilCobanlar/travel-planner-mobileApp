@@ -94,10 +94,10 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMa
       ) : null}
 
       {/* Footer for Metadata and Actions */}
-      {((item.latitude && item.longitude) || canEdit) && (
+      {((item.latitude !== null && item.longitude !== null) || canEdit) && (
         <View style={styles.footer}>
           <View style={styles.footerLeft}>
-            {item.latitude && item.longitude && (
+            {item.latitude !== null && item.longitude !== null && (
               <View style={[styles.badge, { backgroundColor: theme.primary + '10' }]}>
                 <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
                   📍 {t('item.locationAdded')}
