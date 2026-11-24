@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/localization';
 import { usePreferences } from '@/context/PreferencesContext';
 import { BorderRadius } from '@/constants/theme';
 import { formatDayDate, parseDayDate, toDayString } from '@/lib/date';
@@ -16,6 +17,7 @@ interface DatePickerFieldProps {
 
 export function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const { activeTheme } = usePreferences();
   const [show, setShow] = useState(false);
 
@@ -41,7 +43,7 @@ export function DatePickerField({ label, value, onChange }: DatePickerFieldProps
     }
   };
 
-  const displayDate = value ? formatDayDate(value) : 'DD.MM.YYYY';
+  const displayDate = value ? formatDayDate(value) : t('trip.datePlaceholder');
 
   return (
     <View style={styles.container}>

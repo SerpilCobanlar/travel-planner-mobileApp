@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Modal, FlatList } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/localization';
 import { BorderRadius } from '@/constants/theme';
 import { IconSymbol } from './IconSymbol';
 
@@ -20,8 +21,9 @@ interface SelectFieldProps {
   disabled?: boolean;
 }
 
-export function SelectField({ label, value, options, onChange, placeholder = 'Seçiniz', disabled }: SelectFieldProps) {
+export function SelectField({ label, value, options, onChange, placeholder, disabled }: SelectFieldProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -47,7 +49,7 @@ export function SelectField({ label, value, options, onChange, placeholder = 'Se
         disabled={disabled}
       >
         <ThemedText style={{ color: selectedOption ? theme.text : theme.textSecondary }}>
-          {selectedOption ? selectedOption.label : placeholder}
+          {selectedOption ? selectedOption.label : (placeholder ?? t('common.select'))}
         </ThemedText>
         <IconSymbol name="chevron.right" size={20} color={theme.textSecondary} />
       </TouchableOpacity>
@@ -58,7 +60,7 @@ export function SelectField({ label, value, options, onChange, placeholder = 'Se
             <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
               <ThemedText type="subtitle">{label}</ThemedText>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-                <ThemedText style={{ color: theme.primary, fontWeight: 'bold' }}>Kapat</ThemedText>
+                <ThemedText style={{ color: theme.primary, fontWeight: 'bold' }}>{t('common.close')}</ThemedText>
               </TouchableOpacity>
             </View>
             <FlatList

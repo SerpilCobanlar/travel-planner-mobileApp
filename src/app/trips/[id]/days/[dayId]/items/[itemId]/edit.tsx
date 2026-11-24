@@ -1,419 +1,104 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useLocalSearchParams, RelativePathString, useFocusEffect } from 'expo-router';
-import { getPickedLocation } from '@/lib/locationStore';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Stack, useRouter, useLocalSearchParams, RelativePathString } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
-import { TextInput } from '@/components/ui/TextInput';
-import { Button } from '@/components/ui/Button';
-import { TimePickerField } from '@/components/ui/TimePickerField';
-import { SelectField } from '@/components/ui/SelectField';
-import { useTranslation, TranslationKey } from '@/localization';
+import { TripItemForm } from '@/components/TripItemForm';
+import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
-import { combineDayAndTime, formatTime } from '@/lib/date';
-
-const ITEM_TYPES = [
-  'place',
-  'restaurant',
-  'accommodation',
-  'transport',
-  'flight',
-  'train',
-  'bus',
-  'car',
-  'activity',
-  'note',
-];
-
-const CURRENCIES = [
-  { label: 'Türk Lirası (TRY)', value: 'TRY' },
-  { label: 'US Dollar (USD)', value: 'USD' },
-  { label: 'Euro (EUR)', value: 'EUR' },
-  { label: 'British Pound (GBP)', value: 'GBP' },
-];
+import {
+  toTripItemColumns,
+  tripItemRowToForm,
+  TripItemFormOutput,
+  TripItemFormValues,
+} from '@/lib/validation/tripItem';
 
 export default function EditTripItemScreen() {
-  const params = useLocalSearchParams();
-  const { id, dayId, itemId } = params as { id: string; dayId: string; itemId: string };
+  const { id, dayId, itemId } = useLocalSearchParams<{ id: string; dayId: string; itemId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const [selectedType, setSelectedType] = useState('place');
-  const [title, setTitle] = useState('');
-  const [notes, setNotes] = useState('');
-  const [costStr, setCostStr] = useState('');
-  const [currency, setCurrency] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
-  const [endTime, setEndTime] = useState<string | null>(null);
-
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      const loc = getPickedLocation();
-      if (loc) {
-        setLatitude(loc.lat);
-        setLongitude(loc.lng);
-      }
-    }, [])
-  );
-
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchItem = useCallback(async () => {
-    if (!id || !dayId || !itemId) return;
-
-    try {
-      setInitialLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('trip_items')
-        .select('*')
-        .eq('id', itemId)
-        .eq('trip_id', id)
-        .eq('trip_day_id', dayId)
-        .single();
-
-      if (fetchError || !data) {
-        throw new Error('Geçersiz plan');
-      }
-
-      setSelectedType(data.type);
-      setTitle(data.title);
-      setNotes(data.notes || '');
-      setCostStr(data.cost !== null ? data.cost.toString() : '');
-      setCurrency(data.currency || null);
-
-      setStartTime(formatTime(data.start_at) || null);
-      setEndTime(formatTime(data.end_at) || null);
-
-      setLatitude(data.latitude !== undefined ? data.latitude : null);
-      setLongitude(data.longitude !== undefined ? data.longitude : null);
-
-    } catch (err: any) {
-      console.error('FETCH_TRIP_ITEM_ERROR', err);
-      setError(t('item.fetchError'));
-    } finally {
-      setInitialLoading(false);
-    }
-  }, [id, dayId, itemId, t]);
+  const [initialValues, setInitialValues] = useState<TripItemFormValues | null>(null);
+  const [dayDate, setDayDate] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchItem();
-  }, [fetchItem]);
+    if (!id || !dayId || !itemId) return;
+    let cancelled = false;
 
-  const submitLockRef = useRef(false);
+    (async () => {
+      // The item and its day (for turning HH:mm into timestamps on save)
+      const [itemResult, dayResult] = await Promise.all([
+        supabase
+          .from('trip_items')
+          .select('*')
+          .eq('id', itemId)
+          .eq('trip_id', id)
+          .eq('trip_day_id', dayId)
+          .single(),
+        supabase.from('trip_days').select('day_date').eq('id', dayId).eq('trip_id', id).single(),
+      ]);
 
-  const handleUpdate = async () => {
-    if (submitLockRef.current) return;
-    submitLockRef.current = true;
-    setError(null);
-    setLoading(true);
-
-    // Validation
-    const trimmedTitle = title.trim();
-    if (trimmedTitle.length < 2 || trimmedTitle.length > 120) {
-      setError(t('item.titleTooShort'));
-      submitLockRef.current = false;
-      setLoading(false);
-      return;
-    }
-
-    let parsedCost: number | null = null;
-    let finalCurrency: string | null = null;
-
-    const trimmedCost = costStr.trim();
-    if (trimmedCost) {
-      const numCost = parseFloat(trimmedCost.replace(',', '.'));
-      if (isNaN(numCost) || numCost < 0) {
-        setError(t('item.negativeCost'));
-        submitLockRef.current = false;
-        setLoading(false);
+      if (cancelled) return;
+      if (itemResult.error || !itemResult.data || dayResult.error || !dayResult.data) {
+        console.error('FETCH_TRIP_ITEM_ERROR', itemResult.error ?? dayResult.error);
+        setLoadError(t('item.fetchError'));
         return;
       }
-      parsedCost = numCost;
+      setInitialValues(tripItemRowToForm(itemResult.data));
+      setDayDate(dayResult.data.day_date);
+    })();
 
-      if (numCost > 0) {
-        if (!currency) {
-          setError(t('item.currencyRequired'));
-          submitLockRef.current = false;
-          setLoading(false);
-          return;
-        }
-        finalCurrency = currency;
-      }
+    return () => {
+      cancelled = true;
+    };
+  }, [id, dayId, itemId, t]);
+
+  const handleUpdate = async (values: TripItemFormOutput) => {
+    if (!dayDate) return;
+
+    const { data: updatedRows, error: updateError } = await supabase
+      .from('trip_items')
+      .update(toTripItemColumns(values, dayDate))
+      .eq('id', itemId)
+      .eq('trip_id', id)
+      .eq('trip_day_id', dayId)
+      .select('id');
+
+    if (updateError) {
+      console.error('UPDATE_TRIP_ITEM_ERROR', updateError);
+      throw new Error(t('item.updateError'));
+    }
+    // RLS-blocked updates don't error; they just affect 0 rows.
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error(t('common.noPermission'));
     }
 
-    const finalNotes = notes.trim() || null;
-
-    const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
-    let validStartTime: string | null = null;
-    let validEndTime: string | null = null;
-
-    if (startTime) {
-      if (!timeRegex.test(startTime)) {
-        setError(t('item.invalidTime'));
-        submitLockRef.current = false;
-        setLoading(false);
-        return;
-      }
-      validStartTime = startTime;
-    }
-
-    if (endTime) {
-      if (!timeRegex.test(endTime)) {
-        setError(t('item.invalidTime'));
-        submitLockRef.current = false;
-        setLoading(false);
-        return;
-      }
-      validEndTime = endTime;
-    }
-
-    if (validEndTime && !validStartTime) {
-      setError(t('item.endTimeRequiresStart'));
-      submitLockRef.current = false;
-      setLoading(false);
-      return;
-    }
-
-    if (validStartTime && validEndTime) {
-      const startValue = parseInt(validStartTime.replace(':', ''), 10);
-      const endValue = parseInt(validEndTime.replace(':', ''), 10);
-      if (endValue < startValue) {
-        setError(t('item.endTimeBeforeStart'));
-        submitLockRef.current = false;
-        setLoading(false);
-        return;
-      }
-    }
-
-    try {
-      const { data: dayData, error: dayError } = await supabase
-        .from('trip_days')
-        .select('id, day_date')
-        .eq('id', dayId)
-        .eq('trip_id', id)
-        .single();
-
-      if (dayError || !dayData) {
-        throw new Error('Geçersiz gezi gün eşleşmesi');
-      }
-
-      // Day + HH:mm (device local time) → ISO timestamps
-      const finalStartAt = validStartTime ? combineDayAndTime(dayData.day_date, validStartTime) : null;
-      const finalEndAt = validEndTime ? combineDayAndTime(dayData.day_date, validEndTime) : null;
-
-      // Update
-      const { data: updatedRows, error: updateError } = await supabase
-        .from('trip_items')
-        .update({
-          type: selectedType,
-          title: trimmedTitle,
-          notes: finalNotes,
-          cost: parsedCost,
-          currency: finalCurrency,
-          start_at: finalStartAt,
-          end_at: finalEndAt,
-          latitude,
-          longitude,
-        })
-        .eq('id', itemId)
-        .eq('trip_id', id)
-        .eq('trip_day_id', dayId)
-        .select('id');
-
-      if (updateError) throw updateError;
-
-      // RLS-blocked updates don't error; they just affect 0 rows.
-      if (!updatedRows || updatedRows.length === 0) {
-        throw new Error(t('common.noPermission'));
-      }
-
-      // Success - back to day detail
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
-      }
-    } catch (err: any) {
-      console.error('UPDATE_TRIP_ITEM_ERROR', err);
-      setError(t('item.updateError') + ': ' + err.message);
-      submitLockRef.current = false;
-      setLoading(false);
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace(`/trips/${id}/days/${dayId}` as RelativePathString);
     }
   };
-
-  const handleOpenMap = () => {
-    router.push({
-      pathname: '/trips/location-picker' as RelativePathString,
-      params: {
-        ...(latitude !== null ? { lat: latitude.toString() } : {}),
-        ...(longitude !== null ? { lng: longitude.toString() } : {}),
-      },
-    });
-  };
-
-  if (initialLoading) {
-    return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('item.editPlan'), headerBackTitle: 'Geri' }} />
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.primary} />
-        </View>
-      </Screen>
-    );
-  }
 
   return (
-    <Screen scrollable safeArea>
-      <Stack.Screen options={{ title: t('item.editPlan'), headerBackTitle: 'Geri' }} />
-      <View style={styles.container}>
-          {error && (
-            <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>
-              <ThemedText style={styles.errorText} themeColor="error">
-                {error}
-              </ThemedText>
-            </View>
+    <Screen scrollable safeArea="bottom" padded={false}>
+      <Stack.Screen options={{ title: t('item.editPlan') }} />
+      {initialValues ? (
+        <TripItemForm defaultValues={initialValues} submitLabel={t('item.saveChanges')} onSubmit={handleUpdate} />
+      ) : (
+        <View style={styles.center}>
+          {loadError ? (
+            <ThemedText themeColor="error" style={styles.errorText}>
+              {loadError}
+            </ThemedText>
+          ) : (
+            <ActivityIndicator size="large" color={theme.primary} />
           )}
-
-          <ThemedText style={styles.label}>{t('item.planType')}</ThemedText>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipsContainer}
-            style={styles.chipsScroll}
-          >
-            {ITEM_TYPES.map((type) => {
-              const isSelected = selectedType === type;
-              return (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: isSelected ? theme.primary : theme.border,
-                      borderColor: isSelected ? theme.primary : 'transparent',
-                    }
-                  ]}
-                  onPress={() => setSelectedType(type)}
-                >
-                  <ThemedText
-                    style={[
-                      styles.chipText,
-                      { color: isSelected ? theme.background : theme.text }
-                    ]}
-                  >
-                    {t(`item.types.${type}` as TranslationKey)}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <ThemedText style={styles.label}>{t('item.title')}</ThemedText>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder={t('item.title')}
-            maxLength={120}
-            style={styles.input}
-          />
-
-          <ThemedText style={styles.label}>{t('item.notes')}</ThemedText>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder={t('item.notes')}
-            multiline
-            numberOfLines={3}
-            style={[styles.input, styles.textArea]}
-          />
-
-          <View style={styles.row}>
-            <View style={styles.halfCol}>
-              <ThemedText style={styles.label}>{t('item.cost')}</ThemedText>
-              <TextInput
-                value={costStr}
-                onChangeText={setCostStr}
-                placeholder="0.00"
-                keyboardType="numeric"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.halfCol}>
-              <SelectField
-                label={t('item.currency')}
-                value={currency}
-                options={CURRENCIES}
-                onChange={setCurrency}
-                disabled={!costStr || parseFloat(costStr.replace(',', '.')) <= 0}
-              />
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <TimePickerField
-              label={t('item.startTime')}
-              value={startTime}
-              onChange={setStartTime}
-            />
-            <View style={{ width: 16 }} />
-            <TimePickerField
-              label={t('item.endTime')}
-              value={endTime}
-              onChange={setEndTime}
-            />
-          </View>
-
-          <View style={styles.locationContainer}>
-            <View style={styles.row}>
-              <ThemedText style={styles.label}>{t('item.location')}</ThemedText>
-              {latitude !== null && longitude !== null && (
-                <TouchableOpacity onPress={() => {
-                  setLatitude(null);
-                  setLongitude(null);
-                  router.setParams({ lat: '', lng: '' });
-                }}>
-                  <ThemedText style={[styles.removeLocation, { color: theme.error }]}>
-                    {t('item.removeLocation')}
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {latitude !== null && longitude !== null ? (
-              <ThemedText style={styles.locationText}>
-                {latitude.toFixed(4)}, {longitude.toFixed(4)}
-              </ThemedText>
-            ) : (
-              <ThemedText style={styles.locationText}>
-                {t('item.noLocationSelected')}
-              </ThemedText>
-            )}
-
-            <Button
-              title={t('item.chooseOnMap')}
-              onPress={handleOpenMap}
-              variant="outline"
-              style={styles.mapButton}
-            />
-          </View>
-
-          <Button
-            title={loading ? t('common.loading') : t('item.saveChanges')}
-            onPress={handleUpdate}
-            disabled={loading}
-            style={styles.submitButton}
-          />
         </View>
+      )}
     </Screen>
   );
 }
@@ -425,72 +110,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  scroll: {
-    flexGrow: 1,
-  },
-  container: {
-    padding: 16,
-  },
-  errorContainer: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
   errorText: {
-    fontSize: 14,
-  },
-  label: {
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  input: {
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  halfCol: {
-    flex: 1,
-  },
-  chipsScroll: {
-    marginBottom: 16,
-  },
-  chipsContainer: {
-    gap: 8,
-    paddingBottom: 4,
-  },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  submitButton: {
-    marginTop: 24,
-  },
-  locationContainer: {
-    marginBottom: 16,
-  },
-  removeLocation: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  locationText: {
-    fontSize: 14,
-    marginBottom: 8,
-    opacity: 0.8,
-  },
-  mapButton: {
-    marginTop: 8,
+    textAlign: 'center',
   },
 });

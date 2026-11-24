@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabaseClient';
 import { useTranslation } from '@/localization';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -19,6 +19,9 @@ export default function LoginScreen() {
   const { t, language } = useTranslation();
   const { setLanguage } = usePreferences();
   const router = useRouter();
+  // Set by the email confirmation link (see register.tsx emailRedirectTo).
+  const { verified } = useLocalSearchParams<{ verified?: string }>();
+  const justVerified = verified === '1';
 
   const validate = () => {
     setErrorMsg('');
@@ -87,6 +90,12 @@ export default function LoginScreen() {
             secureTextEntry
             placeholder="********"
           />
+
+          {justVerified && !errorMsg ? (
+            <ThemedText style={styles.errorText} themeColor="success" type="smallBold">
+              {t('auth.emailVerified')}
+            </ThemedText>
+          ) : null}
 
           {errorMsg ? (
             <ThemedText style={styles.errorText} themeColor="error" type="smallBold">

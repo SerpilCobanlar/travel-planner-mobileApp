@@ -40,11 +40,8 @@ export default function ProfileScreen() {
   };
 
   const getSystemThemeText = () => {
-    const isDark = systemTheme === 'dark';
-    if (language === 'tr') {
-      return `Sistem • Şu an ${isDark ? 'Koyu' : 'Açık'}`;
-    }
-    return `System • Currently ${isDark ? 'Dark' : 'Light'}`;
+    const mode = systemTheme === 'dark' ? t('profile.themeDark') : t('profile.themeLight');
+    return t('profile.themeSystemCurrent').replace('{mode}', mode);
   };
 
   return (

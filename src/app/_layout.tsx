@@ -4,12 +4,16 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AppLoader } from '@/components/ui/AppLoader';
+import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/localization';
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { activeTheme, isReady } = usePreferences();
   const { session, isLoading } = useAuth();
+  const theme = useTheme();
+  const { t } = useTranslation();
 
   if (isLoading || !isReady) {
     return <AppLoader />;
@@ -18,20 +22,33 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={activeTheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* @ts-ignore - Some TS versions might not have Stack.Protected type natively if it's unstable or custom */}
+      {/* Pushed screens (trips, days, plans, maps) show a native header with a
+          back button; auth and tab screens hide it. Screens set their own title. */}
+      <Stack
+        screenOptions={{
+          headerShown: true,
+          headerStyle: { backgroundColor: theme.background },
+          headerTintColor: theme.primary,
+          headerTitleStyle: { color: theme.text },
+          headerShadowVisible: false,
+          headerBackTitle: t('trip.back'),
+          contentStyle: { backgroundColor: theme.background },
+        }}
+      >
         <Stack.Protected guard={!session}>
-          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
 
-        {/* @ts-ignore */}
         <Stack.Protected guard={!!session}>
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="trips/new" />
           <Stack.Screen name="trips/[id]" />
+          <Stack.Screen name="trips/[id]/edit" />
           <Stack.Screen name="trips/[id]/days/[dayId]" />
+          <Stack.Screen name="trips/[id]/days/[dayId]/map" />
           <Stack.Screen name="trips/[id]/days/[dayId]/new-item" />
           <Stack.Screen name="trips/[id]/days/[dayId]/items/[itemId]/edit" />
+          <Stack.Screen name="trips/location-picker" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

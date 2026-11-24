@@ -138,9 +138,8 @@ export default function DayMapScreen() {
 
   const formatDuration = (seconds: number) => {
     const min = Math.round(seconds / 60);
-    const isEn = t('trip.walking') === 'Walking';
-    const mStr = isEn ? 'min' : 'dk';
-    const hStr = isEn ? 'hr' : 'sa';
+    const mStr = t('common.minutesShort');
+    const hStr = t('common.hoursShort');
 
     if (min < 60) return `${min} ${mStr}`;
     const hr = Math.floor(min / 60);
@@ -200,8 +199,8 @@ export default function DayMapScreen() {
 
   if (loading) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.dayMap') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -211,8 +210,8 @@ export default function DayMapScreen() {
 
   if (error) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.dayMap') }} />
         <View style={styles.center}>
           <ThemedText style={styles.errorText} themeColor="error">
             {error}
@@ -224,8 +223,8 @@ export default function DayMapScreen() {
 
   if (items.length === 0) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.dayMap') }} />
         <View style={styles.center}>
           <ThemedText style={styles.emptyText} themeColor="textSecondary">
             {t('trip.noLocations')}
@@ -239,7 +238,7 @@ export default function DayMapScreen() {
 
   return (
     <Screen safeArea={false} padded={false}>
-      <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Stack.Screen options={{ title: t('trip.dayMap') }} />
       <View style={styles.container}>
         <Mapbox.MapView style={styles.map}>
           {cameraSettings && (
