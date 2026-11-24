@@ -200,8 +200,8 @@ export default function DayMapScreen() {
 
   if (loading) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.dayMap') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -211,8 +211,8 @@ export default function DayMapScreen() {
 
   if (error) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.dayMap') }} />
         <View style={styles.center}>
           <ThemedText style={styles.errorText} themeColor="error">
             {error}
@@ -224,8 +224,8 @@ export default function DayMapScreen() {
 
   if (items.length === 0) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.dayMap') }} />
         <View style={styles.center}>
           <ThemedText style={styles.emptyText} themeColor="textSecondary">
             {t('trip.noLocations')}
@@ -239,7 +239,7 @@ export default function DayMapScreen() {
 
   return (
     <Screen safeArea={false} padded={false}>
-      <Stack.Screen options={{ title: t('trip.dayMap'), headerBackTitle: 'Geri' }} />
+      <Stack.Screen options={{ title: t('trip.dayMap') }} />
       <View style={styles.container}>
         <Mapbox.MapView style={styles.map}>
           {cameraSettings && (

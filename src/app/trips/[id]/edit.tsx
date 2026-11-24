@@ -130,8 +130,8 @@ export default function EditTripScreen() {
 
   if (loading) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.editTrip'), headerBackTitle: t('trip.cancel') }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.editTrip') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -140,8 +140,8 @@ export default function EditTripScreen() {
   }
 
   return (
-    <Screen scrollable safeArea>
-      <Stack.Screen options={{ title: t('trip.editTrip'), headerBackTitle: t('trip.cancel') }} />
+    <Screen scrollable safeArea="bottom">
+      <Stack.Screen options={{ title: t('trip.editTrip') }} />
       <View style={styles.container}>
           {error && (
             <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>

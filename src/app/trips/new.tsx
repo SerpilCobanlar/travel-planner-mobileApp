@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
@@ -7,7 +7,6 @@ import { TextInput } from '@/components/ui/TextInput';
 import { Button } from '@/components/ui/Button';
 import { DatePickerField } from '@/components/ui/DatePickerField';
 import { ToggleRow } from '@/components/ui/ToggleRow';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
@@ -82,18 +81,8 @@ export default function CreateTripScreen() {
   };
 
   return (
-    <Screen scrollable safeArea>
-      <Stack.Screen
-        options={{
-          title: t('trip.createTrip'),
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', marginLeft: -8 }}>
-              <IconSymbol name="chevron.left" size={28} color={theme.primary} />
-              <ThemedText style={{ color: theme.primary, fontSize: 17 }}>{t('trip.back')}</ThemedText>
-            </TouchableOpacity>
-          )
-        }}
-      />
+    <Screen scrollable safeArea="bottom">
+      <Stack.Screen options={{ title: t('trip.createTrip') }} />
       <View style={styles.container}>
         {error && (
           <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>

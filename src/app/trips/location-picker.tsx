@@ -80,8 +80,8 @@ export default function LocationPickerScreen() {
 
   if (loading) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('item.chooseOnMap'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('item.chooseOnMap') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -90,8 +90,8 @@ export default function LocationPickerScreen() {
   }
 
   return (
-    <Screen safeArea={false} padded={false}>
-      <Stack.Screen options={{ title: t('item.chooseOnMap'), headerBackTitle: 'Geri' }} />
+    <Screen safeArea="bottom" padded={false}>
+      <Stack.Screen options={{ title: t('item.chooseOnMap') }} />
       <View style={styles.container}>
         {/* The crosshair must be centered on the map only (not map + footer),
             because the selected coordinate is the map's center. */}

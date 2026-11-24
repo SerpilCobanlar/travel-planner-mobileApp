@@ -263,8 +263,8 @@ export default function EditTripItemScreen() {
 
   if (initialLoading) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('item.editPlan'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('item.editPlan') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -273,8 +273,8 @@ export default function EditTripItemScreen() {
   }
 
   return (
-    <Screen scrollable safeArea>
-      <Stack.Screen options={{ title: t('item.editPlan'), headerBackTitle: 'Geri' }} />
+    <Screen scrollable safeArea="bottom">
+      <Stack.Screen options={{ title: t('item.editPlan') }} />
       <View style={styles.container}>
           {error && (
             <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>

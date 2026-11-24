@@ -203,8 +203,8 @@ export default function DayDetailScreen() {
 
   if (loading && !day) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('item.dayDetail'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('item.dayDetail') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -214,8 +214,8 @@ export default function DayDetailScreen() {
 
   if (error || !day) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('item.dayDetail'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('item.dayDetail') }} />
         <View style={styles.center}>
           <ThemedText style={styles.errorText} themeColor="error">
             {error || t('trip.notFound')}
@@ -226,8 +226,8 @@ export default function DayDetailScreen() {
   }
 
   return (
-    <Screen safeArea padded={false}>
-      <Stack.Screen options={{ title: `${t('trip.day')} ${day.day_number}`, headerBackTitle: 'Geri' }} />
+    <Screen safeArea="bottom" padded={false}>
+      <Stack.Screen options={{ title: `${t('trip.day')} ${day.day_number}` }} />
       <View style={styles.container}>
         <FlatList
           data={items}

@@ -8,7 +8,13 @@ interface ScreenProps {
   scrollable?: boolean;
   padded?: boolean;
   style?: ViewStyle;
-  safeArea?: boolean;
+  /**
+   * true: pad for top and bottom safe areas (screens without a header).
+   * 'bottom': only the bottom inset (screens with a native header, which
+   * already handles the top inset).
+   * false: no padding (e.g. full-bleed maps).
+   */
+  safeArea?: boolean | 'bottom';
 }
 
 export function Screen({
@@ -35,7 +41,7 @@ export function Screen({
     styles.wrapper,
     {
       backgroundColor: theme.background,
-      paddingTop: safeArea ? insets.top : 0,
+      paddingTop: safeArea === true ? insets.top : 0,
       paddingBottom: safeArea ? insets.bottom : 0,
     }
   ];

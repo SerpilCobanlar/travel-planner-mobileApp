@@ -231,8 +231,8 @@ export default function AddTripItemScreen() {
   };
 
   return (
-    <Screen scrollable safeArea>
-      <Stack.Screen options={{ title: t('item.createPlan'), headerBackTitle: 'Geri' }} />
+    <Screen scrollable safeArea="bottom">
+      <Stack.Screen options={{ title: t('item.createPlan') }} />
       <View style={styles.container}>
           {error && (
             <View style={[styles.errorContainer, { backgroundColor: theme.error + '20' }]}>

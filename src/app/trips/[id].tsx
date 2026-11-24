@@ -204,8 +204,8 @@ export default function TripDetailScreen() {
 
   if (loading && !trip) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.details'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.details') }} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={theme.primary} />
         </View>
@@ -215,8 +215,8 @@ export default function TripDetailScreen() {
 
   if (error || !trip) {
     return (
-      <Screen safeArea>
-        <Stack.Screen options={{ title: t('trip.details'), headerBackTitle: 'Geri' }} />
+      <Screen safeArea="bottom">
+        <Stack.Screen options={{ title: t('trip.details') }} />
         <View style={styles.center}>
           <ThemedText style={styles.errorText} themeColor="error">
             {error || t('trip.notFound')}
@@ -227,8 +227,8 @@ export default function TripDetailScreen() {
   }
 
   return (
-    <Screen safeArea padded={false}>
-      <Stack.Screen options={{ title: trip.title || t('trip.details'), headerBackTitle: 'Geri' }} />
+    <Screen safeArea="bottom" padded={false}>
+      <Stack.Screen options={{ title: trip.title || t('trip.details') }} />
       <FlatList
         data={days}
         keyExtractor={(item) => item.id}
