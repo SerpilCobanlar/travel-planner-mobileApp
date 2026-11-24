@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queries/client';
@@ -66,12 +68,20 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <PreferencesProvider>
-        <AuthProvider>
-          <RootLayoutNav />
-        </AuthProvider>
-      </PreferencesProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <QueryClientProvider client={queryClient}>
+        <PreferencesProvider>
+          <AuthProvider>
+            <RootLayoutNav />
+          </AuthProvider>
+        </PreferencesProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

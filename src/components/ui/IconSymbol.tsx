@@ -25,6 +25,9 @@ const MAPPING = {
   'calendar': 'calendar-today',
   'clock': 'access-time',
   'doc.text.image': 'feed',
+  'xmark': 'close',
+  'location.fill': 'my-location',
+  'magnifyingglass': 'search',
 } as Record<string, keyof typeof MaterialIcons.glyphMap>;
 
 export type IconSymbolName = keyof typeof MAPPING | string;
