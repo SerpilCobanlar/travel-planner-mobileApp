@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabaseClient';
 import { useTranslation } from '@/localization';
 import { Screen } from '@/components/ui/Screen';
@@ -67,7 +68,10 @@ export default function RegisterScreen() {
       email: email.trim().toLowerCase(),
       password,
       options: {
-        emailRedirectTo: 'travelplannermobileapp://login',
+        // Opens the app's login screen after confirmation. This URL must be in
+        // Supabase Auth > URL Configuration > Redirect URLs (travelplannermobileapp://**),
+        // otherwise Supabase falls back to the Site URL (a blank page on the phone).
+        emailRedirectTo: Linking.createURL('/login', { queryParams: { verified: '1' } }),
         data: {
           username: username.trim().toLowerCase(),
         }
