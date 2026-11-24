@@ -88,6 +88,22 @@ export const dictionaries = {
       featureShareTitle: 'Paylaş ve keşfet',
       featureShareText: 'Herkese açık gezilerini paylaş, başkalarının günlüklerinden ilham al.',
     },
+    // Discover
+    discover: {
+      mapHint: 'Haritada yalnızca konumlu planı olan geziler görünür.',
+      tripCountOne: 'gezi',
+      tripCountOther: 'gezi',
+      closeCard: 'Kartı kapat',
+      resizeHandle: 'Listeyi büyütmek veya küçültmek için sürükle',
+      showOnMap: 'Haritada',
+      searchPlaceholder: 'Gezi, açıklama veya kullanıcı ara',
+      noSearchResults: 'Aramana uyan gezi bulunamadı.',
+      clearSearch: 'Aramayı temizle',
+      myLocation: 'Konumuma git',
+      locationDenied: 'Konumunu haritada göstermek için konum izni gerekiyor.',
+      locationError: 'Konumun alınamadı. Lütfen tekrar dene.',
+      locationServicesOff: 'Telefonunun konum servisi kapalı. Konumunu görmek için ayarlardan konumu aç.',
+    },
     // Trip
     trip: {
       newTrip: 'Yeni Gezi',
@@ -283,6 +299,22 @@ export const dictionaries = {
       featurePostcardsText: 'Keep the places you visited as postcards and write a memory on the back.',
       featureShareTitle: 'Share and discover',
       featureShareText: "Share your public trips and get inspired by other travelers' journals.",
+    },
+    // Discover
+    discover: {
+      mapHint: 'Only trips with at least one located plan appear on the map.',
+      tripCountOne: 'trip',
+      tripCountOther: 'trips',
+      closeCard: 'Close card',
+      resizeHandle: 'Drag to resize the list',
+      showOnMap: 'On map',
+      searchPlaceholder: 'Search trips, descriptions or users',
+      noSearchResults: 'No trips match your search.',
+      clearSearch: 'Clear search',
+      myLocation: 'Go to my location',
+      locationDenied: 'Location permission is needed to show where you are on the map.',
+      locationError: "Couldn't get your location. Please try again.",
+      locationServicesOff: "Your phone's location is turned off. Turn it on in settings to see where you are.",
     },
     // Trip
     trip: {
