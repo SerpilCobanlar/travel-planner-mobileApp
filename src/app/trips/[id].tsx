@@ -1,109 +1,46 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
-import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabaseClient';
 import { formatDayRange } from '@/lib/date';
-import type { Database } from '@/types/database.types';
+import {
+  NoRowsAffectedError,
+  useDeleteTrip,
+  useMyTripRole,
+  useTrip,
+  useTripDays,
+  useTripItems,
+} from '@/lib/queries/trips';
 import TripDayCard from '@/components/TripDayCard';
 import { Button } from '@/components/ui/Button';
-
-type Trip = Database['public']['Tables']['trips']['Row'];
-type TripDay = Database['public']['Tables']['trip_days']['Row'];
-type TripItem = Database['public']['Tables']['trip_items']['Row'];
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
-
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [days, setDays] = useState<TripDay[]>([]);
-  const [allItems, setAllItems] = useState<TripItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
 
-  const fetchTripDetails = useCallback(async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
+  const tripQuery = useTrip(id);
+  const daysQuery = useTripDays(id);
+  const itemsQuery = useTripItems(id);
+  const roleQuery = useMyTripRole(id, user?.id);
+  const deleteTrip = useDeleteTrip();
 
-      // Fetch Trip
-      const { data: tripData, error: tripError } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('id', id)
-        .single();
+  const trip = tripQuery.data ?? null;
+  const days = daysQuery.data ?? [];
+  const allItems = itemsQuery.data ?? [];
+  const role = roleQuery.data ?? null;
+  const loading = tripQuery.isPending || daysQuery.isPending;
+  const error = tripQuery.error || daysQuery.error || itemsQuery.error ? t('trip.fetchError') : null;
+  const isDeleting = deleteTrip.isPending;
 
-      if (tripError) throw tripError;
-      if (!tripData) {
-        setError(t('trip.notFound'));
-        return;
-      }
-
-      setTrip(tripData);
-
-      // Fetch Days
-      const { data: daysData, error: daysError } = await supabase
-        .from('trip_days')
-        .select('*')
-        .eq('trip_id', id)
-        .order('day_number', { ascending: true });
-
-      if (daysError) throw daysError;
-
-      setDays(daysData || []);
-
-      // Fetch Items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('trip_items')
-        .select('*')
-        .eq('trip_id', id)
-        .order('start_at', { ascending: true, nullsFirst: false })
-        .order('sort_order', { ascending: true });
-
-      if (itemsError) throw itemsError;
-
-      setAllItems(itemsData || []);
-
-      if (user) {
-        if (tripData.owner_id === user.id) {
-          setRole('owner');
-        } else {
-          const { data: memberData } = await supabase
-            .from('trip_members')
-            .select('role')
-            .eq('trip_id', id)
-            .eq('user_id', user.id)
-            .maybeSingle();
-          setRole(memberData?.role || null);
-        }
-      } else {
-        setRole(null);
-      }
-    } catch (err: any) {
-      console.error('TRIP_DETAIL_FETCH_ERROR', err);
-      setError(t('trip.fetchError'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, t, user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchTripDetails();
-    }, [fetchTripDetails])
-  );
+  useRefreshOnFocus(() => Promise.all([tripQuery.refetch(), daysQuery.refetch(), itemsQuery.refetch()]));
 
   const renderHeader = () => {
     if (!trip) return null;
@@ -170,32 +107,22 @@ export default function TripDetailScreen() {
         {
           text: t('trip.delete'),
           style: 'destructive',
-          onPress: async () => {
-            if (isDeleting) return;
-            try {
-              setIsDeleting(true);
-              const { data: deletedRows, error: deleteError } = await supabase
-                .from('trips')
-                .delete()
-                .eq('id', id as string)
-                .select('id');
-
-              if (deleteError) throw deleteError;
-
-              // RLS-blocked deletes don't error; they just affect 0 rows.
-              if (!deletedRows || deletedRows.length === 0) {
-                Alert.alert(t('auth.error'), t('common.noPermission'));
-                setIsDeleting(false);
-                return;
-              }
-
-              router.dismissAll();
-              router.replace('/(tabs)');
-            } catch (err: any) {
-              console.error('DELETE_TRIP_ERROR', err);
-              Alert.alert(t('auth.error'), t('trip.deleteError'));
-              setIsDeleting(false);
-            }
+          onPress: () => {
+            if (isDeleting || !id) return;
+            deleteTrip.mutate(id, {
+              onSuccess: () => {
+                router.dismissAll();
+                router.replace('/(tabs)');
+              },
+              onError: (err) => {
+                if (err instanceof NoRowsAffectedError) {
+                  Alert.alert(t('auth.error'), t('common.noPermission'));
+                } else {
+                  console.error('DELETE_TRIP_ERROR', err);
+                  Alert.alert(t('auth.error'), t('trip.deleteError'));
+                }
+              },
+            });
           }
         }
       ]

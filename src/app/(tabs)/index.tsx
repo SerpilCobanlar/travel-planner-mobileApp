@@ -1,7 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import TripCard from '@/components/TripCard';
 import { Screen } from '@/components/ui/Screen';
@@ -9,14 +8,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
-import type { Database } from '@/types/database.types';
-
-type Trip = Database['public']['Tables']['trips']['Row'];
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
+import { Trip, useTrips } from '@/lib/queries/trips';
 
 export default function HomeScreen() {
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'my_trips' | 'public_trips'>('my_trips');
 
   const { t } = useTranslation();
@@ -24,49 +19,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const fetchTrips = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      let query = supabase.from('trips').select('*');
-
-      if (activeTab === 'my_trips') {
-        if (!user) {
-          setTrips([]);
-          return;
-        }
-        query = query.eq('owner_id', user.id);
-      } else {
-        query = query.eq('is_public', true);
-        if (user) {
-          query = query.neq('owner_id', user.id);
-        }
-      }
-
-      // ordering by start date
-      query = query.order('start_date', { ascending: true });
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      setTrips(data || []);
-    } catch (err: any) {
-      console.error('TRIPS_FETCH_ERROR', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchTrips();
-    }, [fetchTrips])
-  );
+  const tripsQuery = useTrips(activeTab === 'my_trips' ? 'mine' : 'public', user?.id);
+  const trips = tripsQuery.data ?? [];
+  const loading = tripsQuery.isPending;
+  const error = tripsQuery.error ? tripsQuery.error.message : null;
+  useRefreshOnFocus(tripsQuery.refetch);
 
   const renderTrip = ({ item }: { item: Trip }) => (
     <TripCard trip={item} onPress={() => router.push(`/trips/${item.id}`)} />

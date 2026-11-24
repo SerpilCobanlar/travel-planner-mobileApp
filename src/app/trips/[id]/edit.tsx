@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
@@ -7,6 +7,7 @@ import { TripForm } from '@/components/TripForm';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
+import { useInvalidateTrip, useTrip } from '@/lib/queries/trips';
 import { toTripColumns, TripFormOutput, TripFormValues } from '@/lib/validation/trip';
 
 export default function EditTripScreen() {
@@ -14,35 +15,27 @@ export default function EditTripScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const theme = useTheme();
+  const invalidateTrip = useInvalidateTrip();
 
-  const [initialValues, setInitialValues] = useState<TripFormValues | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // Usually already cached by the trip screen.
+  const tripQuery = useTrip(id);
+  const trip = tripQuery.data;
 
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-
-    (async () => {
-      const { data, error } = await supabase.from('trips').select('*').eq('id', id).single();
-      if (cancelled) return;
-      if (error || !data) {
-        console.error('FETCH_TRIP_EDIT_ERROR', error);
-        setLoadError(t('trip.fetchError'));
-        return;
-      }
-      setInitialValues({
-        title: data.title,
-        description: data.description ?? '',
-        startDate: data.start_date,
-        endDate: data.end_date,
-        isPublic: data.is_public ?? false,
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id, t]);
+  // Form defaults are taken once; later cache refreshes don't reset what the user typed.
+  const initialValues = useMemo<TripFormValues | null>(
+    () =>
+      trip
+        ? {
+            title: trip.title,
+            description: trip.description ?? '',
+            startDate: trip.start_date,
+            endDate: trip.end_date,
+            isPublic: trip.is_public ?? false,
+          }
+        : null,
+    [trip?.id] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const loadError = tripQuery.isError ? t('trip.fetchError') : null;
 
   const handleUpdate = async (values: TripFormOutput) => {
     const { data: updatedRows, error } = await supabase
@@ -63,6 +56,9 @@ export default function EditTripScreen() {
     if (!updatedRows || updatedRows.length === 0) {
       throw new Error(t('common.noPermission'));
     }
+
+    // Days may have been added/removed by the date-range trigger.
+    await invalidateTrip(id);
 
     if (router.canGoBack()) {
       router.back();

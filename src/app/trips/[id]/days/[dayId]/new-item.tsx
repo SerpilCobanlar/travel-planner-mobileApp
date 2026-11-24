@@ -5,11 +5,13 @@ import { TripItemForm } from '@/components/TripItemForm';
 import { useTranslation } from '@/localization';
 import { supabase } from '@/lib/supabaseClient';
 import { emptyTripItemForm, toTripItemColumns, TripItemFormOutput } from '@/lib/validation/tripItem';
+import { useInvalidateTrip } from '@/lib/queries/trips';
 
 export default function AddTripItemScreen() {
   const { id, dayId } = useLocalSearchParams<{ id: string; dayId: string }>();
   const router = useRouter();
   const { t } = useTranslation();
+  const invalidateTrip = useInvalidateTrip();
 
   const handleCreate = async (values: TripItemFormOutput) => {
     // Make sure the day belongs to this trip (RLS also enforces membership).
@@ -49,6 +51,8 @@ export default function AddTripItemScreen() {
       console.error('CREATE_TRIP_ITEM_ERROR', insertError);
       throw new Error(t('item.createError'));
     }
+
+    await invalidateTrip(id);
 
     if (router.canGoBack()) {
       router.back();

@@ -6,11 +6,14 @@ import { useTranslation } from '@/localization';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/context/AuthContext';
 import { emptyTripForm, toTripColumns, TripFormOutput } from '@/lib/validation/trip';
+import { useQueryClient } from '@tanstack/react-query';
+import { tripKeys } from '@/lib/queries/trips';
 
 export default function CreateTripScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleCreate = async (values: TripFormOutput) => {
     if (!user) throw new Error(t('auth.error'));
@@ -22,6 +25,8 @@ export default function CreateTripScreen() {
       console.error('CREATE_TRIP_ERROR', error);
       throw new Error(t('trip.createError'));
     }
+
+    await queryClient.invalidateQueries({ queryKey: tripKeys.lists() });
 
     if (router.canGoBack()) {
       router.back();

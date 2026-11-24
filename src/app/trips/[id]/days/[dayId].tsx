@@ -1,20 +1,24 @@
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
-import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
+import React from 'react';
+import { View, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
-import { supabase } from '@/lib/supabaseClient';
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
 import { formatDayDate } from '@/lib/date';
 import { useAuth } from '@/context/AuthContext';
 import TripItemCard from '@/components/TripItemCard';
-import type { Database } from '@/types/database.types';
-
-type Trip = Database['public']['Tables']['trips']['Row'];
-type TripDay = Database['public']['Tables']['trip_days']['Row'];
-type TripItem = Database['public']['Tables']['trip_items']['Row'];
+import {
+  NoRowsAffectedError,
+  TripItem,
+  useDeleteTripItem,
+  useMyTripRole,
+  useTrip,
+  useTripDays,
+  useTripItems,
+} from '@/lib/queries/trips';
 
 export default function DayDetailScreen() {
   const { id, dayId } = useLocalSearchParams<{ id: string; dayId: string }>();
@@ -23,117 +27,37 @@ export default function DayDetailScreen() {
   const theme = useTheme();
   const { user } = useAuth();
 
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [day, setDay] = useState<TripDay | null>(null);
-  const [items, setItems] = useState<TripItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canEdit, setCanEdit] = useState(false);
+  // Same cache as the trip screen: opening a day is instant.
+  const tripQuery = useTrip(id);
+  const daysQuery = useTripDays(id);
+  const itemsQuery = useTripItems(id);
+  const roleQuery = useMyTripRole(id, user?.id);
+  const deleteItem = useDeleteTripItem(id);
 
-  const fetchData = useCallback(async () => {
-    if (!id || !dayId) return;
+  const trip = tripQuery.data ?? null;
+  // Only a day that belongs to this trip (cross-trip safety)
+  const day = daysQuery.data?.find((d) => d.id === dayId) ?? null;
+  const items = (itemsQuery.data ?? []).filter((i) => i.trip_day_id === dayId);
+  const canEdit = roleQuery.data === 'owner' || roleQuery.data === 'editor';
+  const loading = tripQuery.isPending || daysQuery.isPending || itemsQuery.isPending;
+  const error = tripQuery.error || daysQuery.error || itemsQuery.error ? t('item.fetchError') : null;
 
-    try {
-      setLoading(true);
-      setError(null);
+  useRefreshOnFocus(() => Promise.all([daysQuery.refetch(), itemsQuery.refetch()]));
 
-      // Fetch Trip
-      const { data: tripData, error: tripError } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (tripError) throw tripError;
-      setTrip(tripData);
-
-      // Fetch Day
-      const { data: dayData, error: dayError } = await supabase
-        .from('trip_days')
-        .select('*')
-        .eq('id', dayId)
-        .eq('trip_id', id) // Cross-trip safety
-        .single();
-
-      if (dayError) throw dayError;
-      setDay(dayData);
-
-      // Fetch Items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('trip_items')
-        .select('*')
-        .eq('trip_id', id)
-        .eq('trip_day_id', dayId)
-        .order('start_at', { ascending: true, nullsFirst: false })
-        .order('sort_order', { ascending: true });
-
-      if (itemsError) throw itemsError;
-      setItems(itemsData || []);
-
-      // Check Permission
-      if (user) {
-        if (tripData.owner_id === user.id) {
-          setCanEdit(true);
+  const handleDeleteItem = (item: TripItem) => {
+    // Optimistic: the plan disappears right away and comes back if the delete fails.
+    deleteItem.mutate(item.id, {
+      onError: (err) => {
+        if (err instanceof NoRowsAffectedError) {
+          Alert.alert(t('auth.error'), t('common.noPermission'));
         } else {
-          try {
-            const { data: memberData } = await supabase
-              .from('trip_members')
-              .select('role')
-              .eq('trip_id', id)
-              .eq('user_id', user.id)
-              .single();
-            
-            if (memberData && (memberData.role === 'owner' || memberData.role === 'editor')) {
-              setCanEdit(true);
-            } else {
-              setCanEdit(false);
-            }
-          } catch (err) {
-            console.error('TRIP_MEMBER_FETCH_ERROR', err);
-            setCanEdit(false);
-          }
+          console.error('DELETE_TRIP_ITEM_ERROR', err);
+          Alert.alert(t('auth.error'), t('item.deleteError'));
         }
-      }
-
-    } catch (err: any) {
-      console.error('TRIP_DAY_FETCH_ERROR', err);
-      setError(t('item.fetchError'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, dayId, t, user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [fetchData])
-  );
-
-  const handleDeleteItem = async (item: TripItem) => {
-    try {
-      const { data: deletedRows, error: deleteError } = await supabase
-        .from('trip_items')
-        .delete()
-        .eq('id', item.id)
-        .eq('trip_id', id)
-        .eq('trip_day_id', dayId)
-        .select('id');
-
-      if (deleteError) throw deleteError;
-
-      // RLS-blocked deletes don't error; they just affect 0 rows.
-      if (!deletedRows || deletedRows.length === 0) {
-        setError(t('common.noPermission'));
-        return;
-      }
-
-      // Remove from the list
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
-    } catch (err) {
-      console.error('DELETE_TRIP_ITEM_ERROR', err);
-      setError(t('item.deleteError'));
-    }
+      },
+    });
   };
+
 
   const renderHeader = () => {
     if (!trip || !day) return null;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, View, useColorScheme } from 'react-native';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePreferences, LanguagePreference } from '@/context/PreferencesContext';
 import { useTranslation } from '@/localization';
 import { supabase } from '@/lib/supabaseClient';
+import { useProfileUsername } from '@/lib/queries/trips';
 import { useTheme } from '@/hooks/use-theme';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
@@ -18,22 +19,7 @@ export default function ProfileScreen() {
   const colors = useTheme();
   const systemTheme = useColorScheme() || 'light';
   
-  const [username, setUsername] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setUsername(data.username);
-          }
-        });
-    }
-  }, [user]);
+  const { data: username } = useProfileUsername(user?.id);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -1,135 +1,68 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import Mapbox, { initializeMapbox } from '@/lib/mapbox';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
-import { supabase } from '@/lib/supabaseClient';
-import type { Database } from '@/types/database.types';
+import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
 import TripItemCard from '@/components/TripItemCard';
-import { DirectionProfile, RouteResponse, fetchDirections } from '@/lib/mapboxDirections';
-
-type TripItem = Database['public']['Tables']['trip_items']['Row'];
+import { useTripDays, useTripItems } from '@/lib/queries/trips';
+import { DirectionProfile, fetchDirections } from '@/lib/mapboxDirections';
 
 initializeMapbox();
+
+const MAX_ROUTE_POINTS = 25; // Mapbox Directions API limit
 
 export default function DayMapScreen() {
   const { id, dayId, focusItemId } = useLocalSearchParams<{ id: string; dayId: string; focusItemId?: string }>();
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<TripItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(focusItemId || null);
-
   const [profile, setProfile] = useState<DirectionProfile>('walking');
-  const [route, setRoute] = useState<RouteResponse | null>(null);
-  const [routeLoading, setRouteLoading] = useState(false);
-  const [routeError, setRouteError] = useState<string | null>(null);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let isMounted = true;
+  const daysQuery = useTripDays(id);
+  const itemsQuery = useTripItems(id);
+  useRefreshOnFocus(itemsQuery.refetch);
 
-      (async () => {
-        try {
-          if (!id || !dayId) return;
-          setLoading(true);
+  const dayBelongsToTrip = daysQuery.data?.some((d) => d.id === dayId) ?? false;
+  const loading = daysQuery.isPending || itemsQuery.isPending;
+  const error =
+    daysQuery.error || itemsQuery.error || (!loading && !dayBelongsToTrip) ? t('trip.fetchError') : null;
 
-          // Verify day belongs to trip
-          const { data: dayData, error: dayError } = await supabase
-            .from('trip_days')
-            .select('id')
-            .eq('id', dayId)
-            .eq('trip_id', id)
-            .single();
-
-          if (dayError || !dayData) {
-            throw new Error('Day mismatch');
-          }
-
-          // Fetch items
-          const { data: itemsData, error: itemsError } = await supabase
-            .from('trip_items')
-            .select('*')
-            .eq('trip_id', id)
-            .eq('trip_day_id', dayId)
-            .order('start_at', { ascending: true, nullsFirst: false })
-            .order('sort_order', { ascending: true });
-
-          if (itemsError) throw itemsError;
-
-          if (isMounted) {
-            // Filter items with location
-            const locItems = (itemsData || []).filter(
-              (i) => i.latitude !== null && i.longitude !== null
-            );
-
-            setItems(locItems);
-          }
-        } catch (err: any) {
-          console.error('DAY_MAP_FETCH_ERROR', err);
-          if (isMounted) setError(t('trip.fetchError'));
-        } finally {
-          if (isMounted) setLoading(false);
-        }
-      })();
-
-      return () => {
-        isMounted = false;
-      };
-    }, [id, dayId, t])
+  // Plans of this day that have a location, in plan order
+  const items = useMemo(
+    () =>
+      (itemsQuery.data ?? []).filter(
+        (i) => i.trip_day_id === dayId && i.latitude !== null && i.longitude !== null
+      ),
+    [itemsQuery.data, dayId]
   );
 
-  const coordinateSignature = useMemo(() => {
-    return items.map((i) => `${i.id}:${i.longitude},${i.latitude}`).join('|');
-  }, [items]);
+  const coordinates = useMemo(
+    () => items.map((i) => [i.longitude!, i.latitude!] as [number, number]),
+    [items]
+  );
 
-  useEffect(() => {
-    let isCancelled = false;
+  // Cached per profile + coordinates: switching walking/driving back and forth
+  // doesn't call the Directions API again.
+  const canRoute = coordinates.length >= 2 && coordinates.length <= MAX_ROUTE_POINTS;
+  const routeQuery = useQuery({
+    queryKey: ['directions', profile, coordinates],
+    queryFn: () => fetchDirections(profile, coordinates),
+    enabled: canRoute,
+    staleTime: Infinity,
+  });
 
-    const loadRoute = async () => {
-      if (items.length < 2) {
-        setRoute(null);
-        setRouteError(items.length === 1 ? t('trip.routeMinTwoLocations') : null);
-        return;
-      }
-
-      if (items.length > 25) {
-        setRoute(null);
-        setRouteError(t('trip.routeMax25Locations'));
-        return;
-      }
-
-      setRouteLoading(true);
-      setRouteError(null);
-      try {
-        const coords = items.map((i) => [i.longitude!, i.latitude!] as [number, number]);
-        const res = await fetchDirections(profile, coords);
-        if (!isCancelled) {
-          setRoute(res);
-        }
-      } catch {
-        if (!isCancelled) {
-          setRoute(null);
-          setRouteError(t('trip.routeCreateError'));
-        }
-      } finally {
-        if (!isCancelled) {
-          setRouteLoading(false);
-        }
-      }
-    };
-
-    loadRoute();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [items, coordinateSignature, profile, t]);
+  const route = canRoute ? (routeQuery.data ?? null) : null;
+  const routeLoading = canRoute && routeQuery.isFetching && !routeQuery.data;
+  let routeError: string | null = null;
+  if (items.length === 1) routeError = t('trip.routeMinTwoLocations');
+  else if (items.length > MAX_ROUTE_POINTS) routeError = t('trip.routeMax25Locations');
+  else if (canRoute && routeQuery.isError) routeError = t('trip.routeCreateError');
 
   const formatDistance = (meters: number) => {
     if (meters < 1000) return `${Math.round(meters)} m`;

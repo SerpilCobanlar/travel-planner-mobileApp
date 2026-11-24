@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queries/client';
 import * as SplashScreen from 'expo-splash-screen';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { PreferencesProvider, usePreferences } from '@/context/PreferencesContext';
@@ -14,6 +17,12 @@ function RootLayoutNav() {
   const { session, isLoading } = useAuth();
   const theme = useTheme();
   const { t } = useTranslation();
+  const userId = session?.user.id;
+
+  // Never show one account's cached trips to the next account.
+  useEffect(() => {
+    if (!userId) queryClient.clear();
+  }, [userId]);
 
   if (isLoading || !isReady) {
     return <AppLoader />;
@@ -57,10 +66,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <PreferencesProvider>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
-    </PreferencesProvider>
+    <QueryClientProvider client={queryClient}>
+      <PreferencesProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </PreferencesProvider>
+    </QueryClientProvider>
   );
 }
