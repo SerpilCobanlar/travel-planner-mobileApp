@@ -11,6 +11,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
+import { getCurrencyOptions } from '@/constants/currencies';
 import { combineDayAndTime } from '@/lib/date';
 
 const ITEM_TYPES = [
@@ -26,12 +27,6 @@ const ITEM_TYPES = [
   'note',
 ];
 
-const CURRENCIES = [
-  { label: 'Türk Lirası (TRY)', value: 'TRY' },
-  { label: 'US Dollar (USD)', value: 'USD' },
-  { label: 'Euro (EUR)', value: 'EUR' },
-  { label: 'British Pound (GBP)', value: 'GBP' },
-];
 
 export default function AddTripItemScreen() {
   const params = useLocalSearchParams();
@@ -165,7 +160,7 @@ export default function AddTripItemScreen() {
         .single();
 
       if (dayError || !dayData) {
-        throw new Error('Geçersiz gezi gün eşleşmesi');
+        throw new Error(t('common.invalidTripDay'));
       }
 
       // 2. Get Max Sort Order
@@ -310,7 +305,7 @@ export default function AddTripItemScreen() {
               <SelectField
                 label={t('item.currency')}
                 value={currency}
-                options={CURRENCIES}
+                options={getCurrencyOptions(t)}
                 onChange={setCurrency}
                 disabled={!costStr || parseFloat(costStr.replace(',', '.')) <= 0}
               />

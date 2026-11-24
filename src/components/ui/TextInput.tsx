@@ -7,6 +7,7 @@ import {
   TouchableOpacity
 } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/localization';
 import { ThemedText } from '../themed-text';
 import { BorderRadius } from '@/constants/theme';
 
@@ -23,6 +24,7 @@ export function TextInput({
   ...props 
 }: TextInputProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
@@ -70,7 +72,7 @@ export function TextInput({
             onPress={() => setIsPasswordVisible(!isPasswordVisible)}
           >
             <ThemedText type="small" themeColor="primary">
-              {isPasswordVisible ? 'Gizle' : 'Göster'}
+              {isPasswordVisible ? t('common.hide') : t('common.show')}
             </ThemedText>
           </TouchableOpacity>
         )}

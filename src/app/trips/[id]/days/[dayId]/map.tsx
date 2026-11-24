@@ -138,9 +138,8 @@ export default function DayMapScreen() {
 
   const formatDuration = (seconds: number) => {
     const min = Math.round(seconds / 60);
-    const isEn = t('trip.walking') === 'Walking';
-    const mStr = isEn ? 'min' : 'dk';
-    const hStr = isEn ? 'hr' : 'sa';
+    const mStr = t('common.minutesShort');
+    const hStr = t('common.hoursShort');
 
     if (min < 60) return `${min} ${mStr}`;
     const hr = Math.floor(min / 60);

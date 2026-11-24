@@ -26,7 +26,7 @@ export default function TripCard({ trip, onPress }: TripCardProps) {
     <Card style={styles.card}>
       <View style={styles.header}>
         <ThemedText style={styles.title} type="subtitle" numberOfLines={1}>
-          {trip.title || 'İsimsiz Gezi'}
+          {trip.title || t('common.untitledTrip')}
         </ThemedText>
         <View style={[styles.badge, { borderColor: badgeColor }]}>
           <ThemedText style={[styles.badgeText, { color: badgeColor }]}>{isPublicText}</ThemedText>

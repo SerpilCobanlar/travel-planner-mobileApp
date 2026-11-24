@@ -11,6 +11,7 @@ import { SelectField } from '@/components/ui/SelectField';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabaseClient';
+import { getCurrencyOptions } from '@/constants/currencies';
 import { combineDayAndTime, formatTime } from '@/lib/date';
 
 const ITEM_TYPES = [
@@ -26,12 +27,6 @@ const ITEM_TYPES = [
   'note',
 ];
 
-const CURRENCIES = [
-  { label: 'Türk Lirası (TRY)', value: 'TRY' },
-  { label: 'US Dollar (USD)', value: 'USD' },
-  { label: 'Euro (EUR)', value: 'EUR' },
-  { label: 'British Pound (GBP)', value: 'GBP' },
-];
 
 export default function EditTripItemScreen() {
   const params = useLocalSearchParams();
@@ -81,7 +76,7 @@ export default function EditTripItemScreen() {
         .single();
 
       if (fetchError || !data) {
-        throw new Error('Geçersiz plan');
+        throw new Error('ITEM_NOT_FOUND');
       }
 
       setSelectedType(data.type);
@@ -204,7 +199,7 @@ export default function EditTripItemScreen() {
         .single();
 
       if (dayError || !dayData) {
-        throw new Error('Geçersiz gezi gün eşleşmesi');
+        throw new Error(t('common.invalidTripDay'));
       }
 
       // Day + HH:mm (device local time) → ISO timestamps
@@ -352,7 +347,7 @@ export default function EditTripItemScreen() {
               <SelectField
                 label={t('item.currency')}
                 value={currency}
-                options={CURRENCIES}
+                options={getCurrencyOptions(t)}
                 onChange={setCurrency}
                 disabled={!costStr || parseFloat(costStr.replace(',', '.')) <= 0}
               />

@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { useTheme } from '@/hooks/use-theme';
+import { useTranslation } from '@/localization';
 import { usePreferences } from '@/context/PreferencesContext';
 import { BorderRadius } from '@/constants/theme';
 import { parseTime, toTimeString } from '@/lib/date';
@@ -17,6 +18,7 @@ interface TimePickerFieldProps {
 
 export function TimePickerField({ label, value, onChange, allowClear = true }: TimePickerFieldProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const { activeTheme } = usePreferences();
   const [show, setShow] = useState(false);
 
@@ -52,7 +54,7 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
         <ThemedText style={styles.label}>{label}</ThemedText>
         {allowClear && value && (
           <TouchableOpacity onPress={handleClear} hitSlop={8}>
-             <ThemedText type="smallBold" style={{ color: theme.error }}>Temizle</ThemedText>
+             <ThemedText type="smallBold" style={{ color: theme.error }}>{t('common.clear')}</ThemedText>
           </TouchableOpacity>
         )}
       </View>
@@ -78,7 +80,7 @@ export function TimePickerField({ label, value, onChange, allowClear = true }: T
             activeOpacity={0.7}
           >
             <ThemedText style={{ color: value ? theme.text : theme.textSecondary }}>
-              {value || 'HH:mm'}
+              {value || t('item.timePlaceholder')}
             </ThemedText>
             <IconSymbol name="clock" size={20} color={theme.textSecondary} />
           </TouchableOpacity>

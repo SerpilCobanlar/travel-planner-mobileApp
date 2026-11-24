@@ -111,7 +111,7 @@ export default function RegisterScreen() {
       setErrorMsg(userMessage);
     } else {
       if (data.user && !data.session) {
-        Alert.alert('Success', t('auth.checkEmail'));
+        Alert.alert(t('common.success'), t('auth.checkEmail'));
         router.push('/(auth)/login');
       }
       // If session exists, AuthContext will automatically redirect to (tabs)
