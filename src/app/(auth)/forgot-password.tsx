@@ -45,9 +45,14 @@ export default function ForgotPasswordScreen() {
     });
 
     if (error) {
-      // Rate limits and config problems; "no such user" is not reported by Supabase.
-      console.error('RESET_PASSWORD_EMAIL_ERROR', error);
-      setServerError(error.status === 429 ? t('auth.rateLimit') : t('auth.error'));
+      // "No such user" is not reported by Supabase. A rate limit (429) is expected
+      // with the built-in mailer, so it isn't logged as an error.
+      if (error.status === 429) {
+        setServerError(t('auth.rateLimit'));
+      } else {
+        console.error('RESET_PASSWORD_EMAIL_ERROR', error);
+        setServerError(t('auth.error'));
+      }
       return;
     }
     // Same message whether or not the account exists (no account enumeration).
