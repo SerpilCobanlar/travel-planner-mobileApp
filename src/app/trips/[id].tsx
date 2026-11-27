@@ -16,6 +16,7 @@ import {
   useTripDays,
   useTripItems,
 } from '@/lib/queries/trips';
+import { memberErrorKey, useLeaveTrip } from '@/lib/queries/members';
 import TripDayCard from '@/components/TripDayCard';
 import { Button } from '@/components/ui/Button';
 
@@ -31,6 +32,7 @@ export default function TripDetailScreen() {
   const itemsQuery = useTripItems(id);
   const roleQuery = useMyTripRole(id, user?.id);
   const deleteTrip = useDeleteTrip();
+  const leaveTrip = useLeaveTrip(id);
 
   const trip = tripQuery.data ?? null;
   const days = daysQuery.data ?? [];
@@ -94,8 +96,52 @@ export default function TripDetailScreen() {
             )}
           </View>
         )}
+
+        {role === 'owner' && (
+          <Button
+            title={t('members.inviteButton')}
+            onPress={() => router.push(`/trips/${id}/members/invite`)}
+            style={styles.memberButton}
+            variant="outline"
+            icon="person.fill"
+          />
+        )}
+
+        {/* Editors and viewers can leave; the owner can't (protect_trip_owner trigger). */}
+        {(role === 'editor' || role === 'viewer') && (
+          <Button
+            title={leaveTrip.isPending ? t('common.loading') : t('members.leave')}
+            onPress={handleLeave}
+            disabled={leaveTrip.isPending}
+            style={[styles.memberButton, styles.deleteButton]}
+            textStyle={styles.deleteButtonText}
+            variant="outline"
+            icon="rectangle.portrait.and.arrow.right"
+          />
+        )}
       </View>
     );
+  };
+
+  const handleLeave = () => {
+    Alert.alert(t('members.leaveConfirmTitle'), t('members.leaveConfirmMessage'), [
+      { text: t('trip.cancel'), style: 'cancel' },
+      {
+        text: t('members.leave'),
+        style: 'destructive',
+        onPress: () =>
+          leaveTrip.mutate(undefined, {
+            onSuccess: () => {
+              router.dismissAll();
+              router.replace('/(tabs)');
+            },
+            onError: (err) => {
+              console.error('LEAVE_TRIP_ERROR', err);
+              Alert.alert(t('auth.error'), t(memberErrorKey(err)));
+            },
+          }),
+      },
+    ]);
   };
 
   const handleDelete = () => {
@@ -231,6 +277,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 16,
     marginBottom: 8,
+  },
+  memberButton: {
+    marginTop: 12,
   },
   actionButton: {
     flex: 1,

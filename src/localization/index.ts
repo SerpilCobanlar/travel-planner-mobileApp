@@ -76,6 +76,28 @@ export const dictionaries = {
         GBP: 'İngiliz Sterlini',
       },
     },
+    // Members
+    members: {
+      inviteTitle: 'Arkadaş davet et',
+      inviteButton: 'Arkadaş davet et',
+      inviteHint: 'Arkadaşının uygulamadaki kullanıcı adını tam olarak yaz.',
+      usernameLabel: 'Kullanıcı adı',
+      usernamePlaceholder: 'kullanici_adi',
+      roleLabel: 'Yetki',
+      roleEditor: 'Düzenleyebilir',
+      roleViewer: 'Sadece görüntüler',
+      invite: 'Davet et',
+      invited: '@{username} geziye eklendi.',
+      leave: 'Geziden ayrıl',
+      leaveConfirmTitle: 'Geziden ayrıl',
+      leaveConfirmMessage: 'Bu geziden ayrılmak istediğine emin misin? Gezi herkese açık değilse artık göremeyeceksin.',
+      errors: {
+        userNotFound: 'Bu kullanıcı adıyla bir kullanıcı bulunamadı.',
+        alreadyMember: 'Bu kullanıcı zaten gezide.',
+        cannotAddSelf: 'Kendini davet edemezsin.',
+        ownerCannotLeave: 'Gezinin sahibi geziden ayrılamaz.',
+      },
+    },
     // Blog
     blog: {
       comingSoon: 'Yakında',
@@ -286,6 +308,28 @@ export const dictionaries = {
         USD: 'US Dollar',
         EUR: 'Euro',
         GBP: 'British Pound',
+      },
+    },
+    // Members
+    members: {
+      inviteTitle: 'Invite a friend',
+      inviteButton: 'Invite a friend',
+      inviteHint: "Enter your friend's exact username in the app.",
+      usernameLabel: 'Username',
+      usernamePlaceholder: 'username',
+      roleLabel: 'Permission',
+      roleEditor: 'Can edit',
+      roleViewer: 'View only',
+      invite: 'Invite',
+      invited: '@{username} was added to the trip.',
+      leave: 'Leave trip',
+      leaveConfirmTitle: 'Leave trip',
+      leaveConfirmMessage: "Are you sure you want to leave this trip? You won't see it anymore unless it is public.",
+      errors: {
+        userNotFound: 'No user found with this username.',
+        alreadyMember: 'This user is already on the trip.',
+        cannotAddSelf: "You can't invite yourself.",
+        ownerCannotLeave: "The trip owner can't leave the trip.",
       },
     },
     // Blog
