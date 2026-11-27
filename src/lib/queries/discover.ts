@@ -2,8 +2,8 @@
  * Discover tab data (#18): other users' public trips, each with a map pin.
  *
  * Trips have no location of their own, so a trip's pin is its first plan that
- * has coordinates: earliest day, then earliest time (untimed last), then manual
- * order. This matches how the day screen orders plans.
+ * has coordinates: earliest day first, then the day's plan order (`planOrder.ts`),
+ * the same order the day screen shows.
  *
  * The key lives under `tripKeys.lists()`, so any trip/plan change that already
  * invalidates the trip lists refreshes Discover too.
@@ -11,6 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { tripKeys, type Trip } from '@/lib/queries/trips';
+import { orderDayItems } from '@/lib/planOrder';
 
 const MAX_DISCOVER_TRIPS = 100;
 
@@ -26,27 +27,32 @@ export const discoverKeys = {
   list: (userId: string | undefined) => [...tripKeys.lists(), 'discover', userId ?? 'anon'] as const,
 };
 
-interface LocatedItem {
+interface PlanRow {
+  id: string;
   trip_id: string;
   trip_day_id: string | null;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   start_at: string | null;
   sort_order: number;
+  created_at: string;
 }
 
-function compareItems(a: LocatedItem, b: LocatedItem, dayNumbers: Map<string, number>): number {
-  const dayA = a.trip_day_id ? (dayNumbers.get(a.trip_day_id) ?? Infinity) : Infinity;
-  const dayB = b.trip_day_id ? (dayNumbers.get(b.trip_day_id) ?? Infinity) : Infinity;
-  if (dayA !== dayB) return dayA - dayB;
+/** [lng, lat] of the first located plan, going day by day in plan order. */
+function firstLocation(plans: PlanRow[], dayNumbers: Map<string, number>): [number, number] | null {
+  const byDay = new Map<string | null, PlanRow[]>();
+  for (const plan of plans) byDay.set(plan.trip_day_id, [...(byDay.get(plan.trip_day_id) ?? []), plan]);
 
-  if (a.start_at !== b.start_at) {
-    if (a.start_at === null) return 1;
-    if (b.start_at === null) return -1;
-    return a.start_at < b.start_at ? -1 : 1;
+  const dayRank = (dayId: string | null) => (dayId ? (dayNumbers.get(dayId) ?? Infinity) : Infinity);
+  const days = [...byDay.keys()].sort((a, b) => dayRank(a) - dayRank(b));
+
+  for (const dayId of days) {
+    const located = orderDayItems(byDay.get(dayId) ?? []).find(
+      (plan) => plan.latitude !== null && plan.longitude !== null
+    );
+    if (located) return [located.longitude!, located.latitude!];
   }
-
-  return a.sort_order - b.sort_order;
+  return null;
 }
 
 async function fetchDiscoverTrips(userId: string | undefined): Promise<DiscoverTrip[]> {
@@ -63,12 +69,11 @@ async function fetchDiscoverTrips(userId: string | undefined): Promise<DiscoverT
   const ownerIds = [...new Set(trips.map((trip) => trip.owner_id))];
   const [daysResult, itemsResult, profilesResult] = await Promise.all([
     supabase.from('trip_days').select('id, day_number').in('trip_id', tripIds),
+    // All plans, not only located ones: untimed plans' position depends on the plans before them.
     supabase
       .from('trip_items')
-      .select('trip_id, trip_day_id, latitude, longitude, start_at, sort_order')
-      .in('trip_id', tripIds)
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null),
+      .select('id, trip_id, trip_day_id, latitude, longitude, start_at, sort_order, created_at')
+      .in('trip_id', tripIds),
     supabase.from('profiles').select('id, username').in('id', ownerIds),
   ]);
   if (daysResult.error) throw daysResult.error;
@@ -79,25 +84,16 @@ async function fetchDiscoverTrips(userId: string | undefined): Promise<DiscoverT
   const dayNumbers = new Map((daysResult.data ?? []).map((day) => [day.id, day.day_number]));
   const usernames = new Map((profilesResult.data ?? []).map((profile) => [profile.id, profile.username]));
 
-  const firstItemByTrip = new Map<string, LocatedItem>();
-  for (const row of itemsResult.data ?? []) {
-    // Filtered to non-null above; the check narrows the generated nullable types.
-    if (row.latitude === null || row.longitude === null) continue;
-    const item: LocatedItem = { ...row, latitude: row.latitude, longitude: row.longitude };
-    const current = firstItemByTrip.get(item.trip_id);
-    if (!current || compareItems(item, current, dayNumbers) < 0) {
-      firstItemByTrip.set(item.trip_id, item);
-    }
+  const plansByTrip = new Map<string, PlanRow[]>();
+  for (const plan of itemsResult.data ?? []) {
+    plansByTrip.set(plan.trip_id, [...(plansByTrip.get(plan.trip_id) ?? []), plan]);
   }
 
-  return trips.map((trip) => {
-    const first = firstItemByTrip.get(trip.id);
-    return {
-      trip,
-      start: first ? [first.longitude, first.latitude] : null,
-      ownerUsername: usernames.get(trip.owner_id) ?? null,
-    };
-  });
+  return trips.map((trip) => ({
+    trip,
+    start: firstLocation(plansByTrip.get(trip.id) ?? [], dayNumbers),
+    ownerUsername: usernames.get(trip.owner_id) ?? null,
+  }));
 }
 
 /** Case-insensitive (Turkish-aware) match on title, description and owner username. */

@@ -16,9 +16,21 @@ interface TripItemCardProps {
   onEdit?: (item: TripItem) => void;
   onDelete?: (item: TripItem) => void;
   onShowMap?: (item: TripItem) => void;
+  /** "Move" action (to another day); shown to editors only. */
+  onMove?: (item: TripItem) => void;
+  /** Rendered at the top right, e.g. a drag handle for reordering. */
+  dragHandle?: React.ReactNode;
 }
 
-export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMap }: TripItemCardProps) {
+export default function TripItemCard({
+  item,
+  canEdit,
+  onEdit,
+  onDelete,
+  onShowMap,
+  onMove,
+  dragHandle,
+}: TripItemCardProps) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -62,6 +74,7 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMa
             </ThemedText>
           </View>
         </View>
+        {dragHandle}
       </View>
 
       <View style={styles.titleRow}>
@@ -104,6 +117,12 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMa
 
             {canEdit && (
               <>
+                {onMove && (
+                  <TouchableOpacity onPress={() => onMove(item)} style={styles.actionButton}>
+                    <ThemedText style={styles.actionText}>{t('item.move')}</ThemedText>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity onPress={() => onEdit && onEdit(item)} style={styles.actionButton}>
                   <ThemedText style={styles.actionText}>{t('item.edit')}</ThemedText>
                 </TouchableOpacity>

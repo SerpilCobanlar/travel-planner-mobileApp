@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
 import { getMyTripRole, TripRole } from '@/lib/tripMembers';
+import { orderTripItems } from '@/lib/planOrder';
 import type { Database } from '@/types/database.types';
 
 export type Trip = Database['public']['Tables']['trips']['Row'];
@@ -83,16 +84,15 @@ async function fetchTripDays(tripId: string): Promise<TripDay[]> {
   return data ?? [];
 }
 
-/** All plans of a trip, timed ones first, then by manual order. Screens filter by day. */
+/** All plans of a trip in day order (see `planOrder.ts`, #15). Screens filter by day. */
 async function fetchTripItems(tripId: string): Promise<TripItem[]> {
   const { data, error } = await supabase
     .from('trip_items')
     .select('*')
     .eq('trip_id', tripId)
-    .order('start_at', { ascending: true, nullsFirst: false })
     .order('sort_order', { ascending: true });
   if (error) throw error;
-  return data ?? [];
+  return orderTripItems(data ?? []);
 }
 
 // ---------- Queries ----------
