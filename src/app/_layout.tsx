@@ -61,6 +61,9 @@ function RootLayoutNav() {
           <Stack.Screen name="trips/[id]/days/[dayId]/items/[itemId]/edit" />
           <Stack.Screen name="trips/location-picker" />
         </Stack.Protected>
+
+        {/* Opened from the password reset email; must work signed in or out (#52). */}
+        <Stack.Screen name="reset-password" />
       </Stack>
     </ThemeProvider>
   );

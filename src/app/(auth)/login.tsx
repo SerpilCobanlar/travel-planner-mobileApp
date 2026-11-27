@@ -110,8 +110,14 @@ export default function LoginScreen() {
             style={styles.button}
           />
 
-          <Button 
-            title={t('auth.noAccount')} 
+          <Button
+            title={t('auth.forgotPassword')}
+            variant="ghost"
+            onPress={() => router.push('/(auth)/forgot-password')}
+          />
+
+          <Button
+            title={t('auth.noAccount')}
             variant="ghost" 
             onPress={() => router.push('/(auth)/register')} 
           />
