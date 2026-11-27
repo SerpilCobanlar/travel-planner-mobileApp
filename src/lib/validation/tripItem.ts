@@ -41,6 +41,9 @@ export const tripItemFormSchema = z
     endTime: z.string().regex(TIME_REGEX, 'item.invalidTime').nullable(),
     latitude: z.number().nullable(),
     longitude: z.number().nullable(),
+    // Set when the location came from a place search (#14); stored in details.place
+    placeName: z.string().nullable(),
+    placeAddress: z.string().nullable(),
   })
   .superRefine((v, ctx) => {
     const cost = parseCost(v.cost);
@@ -69,6 +72,8 @@ export const emptyTripItemForm: TripItemFormValues = {
   endTime: null,
   latitude: null,
   longitude: null,
+  placeName: null,
+  placeAddress: null,
 };
 
 interface TripItemRowLike {
@@ -81,6 +86,15 @@ interface TripItemRowLike {
   end_at: string | null;
   latitude: number | null;
   longitude: number | null;
+  details: unknown;
+}
+
+/** `trip_items.details.place` written by the place search. */
+export function readPlace(details: unknown): { name: string; address: string | null } | null {
+  if (!details || typeof details !== "object") return null;
+  const place = (details as { place?: { name?: unknown; address?: unknown } }).place;
+  if (!place || typeof place.name !== "string") return null;
+  return { name: place.name, address: typeof place.address === "string" ? place.address : null };
 }
 
 /** Database row → form values (for the edit screen). */
@@ -95,6 +109,8 @@ export function tripItemRowToForm(row: TripItemRowLike): TripItemFormValues {
     endTime: formatTime(row.end_at) || null,
     latitude: row.latitude,
     longitude: row.longitude,
+    placeName: readPlace(row.details)?.name ?? null,
+    placeAddress: readPlace(row.details)?.address ?? null,
   };
 }
 
@@ -112,5 +128,6 @@ export function toTripItemColumns(values: TripItemFormOutput, dayDate: string) {
     end_at: values.endTime ? combineDayAndTime(dayDate, values.endTime) : null,
     latitude: values.latitude,
     longitude: values.longitude,
+    details: values.placeName ? { place: { name: values.placeName, address: values.placeAddress } } : {},
   };
 }

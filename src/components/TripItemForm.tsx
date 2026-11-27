@@ -42,13 +42,17 @@ export function TripItemForm({ defaultValues, submitLabel, onSubmit }: TripItemF
     control,
     handleSubmit,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<TripItemFormValues, unknown, TripItemFormOutput>({
     resolver: zodResolver(tripItemFormSchema),
     defaultValues,
   });
 
-  const [cost, latitude, longitude] = useWatch({ control, name: ['cost', 'latitude', 'longitude'] });
+  const [cost, latitude, longitude, placeName, placeAddress] = useWatch({
+    control,
+    name: ['cost', 'latitude', 'longitude', 'placeName', 'placeAddress'],
+  });
   const parsedCost = parseCost(cost);
   const hasPositiveCost = parsedCost !== null && parsedCost > 0;
   const hasLocation = latitude !== null && longitude !== null;
@@ -60,20 +64,34 @@ export function TripItemForm({ defaultValues, submitLabel, onSubmit }: TripItemF
       if (picked) {
         setValue('latitude', picked.lat, { shouldDirty: true });
         setValue('longitude', picked.lng, { shouldDirty: true });
+        setValue('placeName', picked.name ?? null, { shouldDirty: true });
+        setValue('placeAddress', picked.address ?? null, { shouldDirty: true });
+        // A searched place names the plan if the user hasn't typed a title yet.
+        if (picked.name && !getValues('title').trim()) {
+          setValue('title', picked.name, { shouldDirty: true, shouldValidate: true });
+        }
       }
-    }, [setValue])
+    }, [setValue, getValues])
   );
 
   const openLocationPicker = () => {
     router.push({
       pathname: '/trips/location-picker' as RelativePathString,
-      params: hasLocation ? { lat: String(latitude), lng: String(longitude) } : {},
+      params: hasLocation
+        ? {
+            lat: String(latitude),
+            lng: String(longitude),
+            ...(placeName ? { name: placeName, address: placeAddress ?? '' } : {}),
+          }
+        : {},
     });
   };
 
   const clearLocation = () => {
     setValue('latitude', null, { shouldDirty: true });
     setValue('longitude', null, { shouldDirty: true });
+    setValue('placeName', null, { shouldDirty: true });
+    setValue('placeAddress', null, { shouldDirty: true });
   };
 
   const submit = handleSubmit(async (values) => {
@@ -234,11 +252,24 @@ export function TripItemForm({ defaultValues, submitLabel, onSubmit }: TripItemF
           )}
         </View>
 
-        <ThemedText style={styles.locationText}>
-          {hasLocation
-            ? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
-            : t('item.noLocationSelected')}
-        </ThemedText>
+        {hasLocation && placeName ? (
+          <View style={styles.placeInfo}>
+            <ThemedText type="smallBold" numberOfLines={1}>
+              📍 {placeName}
+            </ThemedText>
+            {placeAddress ? (
+              <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
+                {placeAddress}
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : (
+          <ThemedText style={styles.locationText}>
+            {hasLocation
+              ? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+              : t('item.noLocationSelected')}
+          </ThemedText>
+        )}
 
         <Button
           title={t('item.chooseOnMap')}
@@ -312,6 +343,10 @@ const styles = StyleSheet.create({
   removeLocation: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  placeInfo: {
+    marginBottom: 8,
+    gap: 2,
   },
   locationText: {
     fontSize: 14,
