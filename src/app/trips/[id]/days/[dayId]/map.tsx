@@ -190,6 +190,25 @@ export default function DayMapScreen() {
                   lineCap: 'round',
                 }}
               />
+              {/* Arrows along the line show which way the route goes (#49).
+                  keepUpright must be off, or arrows flip on westbound parts. */}
+              <Mapbox.SymbolLayer
+                id="routeArrows"
+                aboveLayerID="routeLine"
+                style={{
+                  symbolPlacement: 'line',
+                  symbolSpacing: 80,
+                  textField: '>',
+                  textSize: 16,
+                  textColor: theme.primary,
+                  textHaloColor: '#ffffff',
+                  textHaloWidth: 1.5,
+                  textKeepUpright: false,
+                  textRotationAlignment: 'map',
+                  textAllowOverlap: true,
+                  textIgnorePlacement: true,
+                }}
+              />
             </Mapbox.ShapeSource>
           )}
 
