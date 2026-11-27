@@ -28,6 +28,7 @@ const MAPPING = {
   'xmark': 'close',
   'location.fill': 'my-location',
   'magnifyingglass': 'search',
+  'line.3.horizontal': 'drag-handle',
 } as Record<string, keyof typeof MaterialIcons.glyphMap>;
 
 export type IconSymbolName = keyof typeof MAPPING | string;

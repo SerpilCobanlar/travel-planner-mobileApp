@@ -1,6 +1,9 @@
-import React from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator, Alert, FlatList } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
+import ReorderableList, { ReorderableListReorderEvent, reorderItems } from 'react-native-reorderable-list';
+import { Toast, useToast } from '@/components/ui/Toast';
 import { Screen } from '@/components/ui/Screen';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/Button';
@@ -9,9 +12,11 @@ import { useTheme } from '@/hooks/use-theme';
 import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
 import { formatDayDate } from '@/lib/date';
 import { useAuth } from '@/context/AuthContext';
-import TripItemCard from '@/components/TripItemCard';
+import { ReorderablePlanItem } from '@/components/ReorderablePlanItem';
+import { DayPickerModal } from '@/components/DayPickerModal';
 import {
   NoRowsAffectedError,
+  TripDay,
   TripItem,
   useDeleteTripItem,
   useMyTripRole,
@@ -19,6 +24,8 @@ import {
   useTripDays,
   useTripItems,
 } from '@/lib/queries/trips';
+import { useMoveTripItem, useReorderDayItems } from '@/lib/queries/planOrder';
+import { isValidDayOrder, renumberDayItems } from '@/lib/planOrder';
 
 export default function DayDetailScreen() {
   const { id, dayId } = useLocalSearchParams<{ id: string; dayId: string }>();
@@ -33,10 +40,36 @@ export default function DayDetailScreen() {
   const itemsQuery = useTripItems(id);
   const roleQuery = useMyTripRole(id, user?.id);
   const deleteItem = useDeleteTripItem(id);
+  const reorder = useReorderDayItems(id);
+  const moveItem = useMoveTripItem(id);
+  const [movingItem, setMovingItem] = useState<TripItem | null>(null);
+  const { toast, show: showToast } = useToast();
+
+  // A rejected drop can't be undone inside the list library, so the list is
+  // remounted (new key) to snap back, then scrolled to where the user was.
+  const [listKey, setListKey] = useState(0);
+  const listRef = useRef<FlatList<TripItem>>(null);
+  const scrollY = useSharedValue(0);
+  const restoreOffset = useRef(0);
+  const onListScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.set(event.contentOffset.y);
+    },
+  });
+
+  useEffect(() => {
+    if (listKey === 0) return;
+    const frame = requestAnimationFrame(() =>
+      listRef.current?.scrollToOffset({ offset: restoreOffset.current, animated: false })
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [listKey]);
 
   const trip = tripQuery.data ?? null;
+  const days = daysQuery.data ?? [];
   // Only a day that belongs to this trip (cross-trip safety)
-  const day = daysQuery.data?.find((d) => d.id === dayId) ?? null;
+  const day = days.find((d) => d.id === dayId) ?? null;
+  // Already in plan order (timed by time, untimed after their anchor; see planOrder.ts)
   const items = (itemsQuery.data ?? []).filter((i) => i.trip_day_id === dayId);
   const canEdit = roleQuery.data === 'owner' || roleQuery.data === 'editor';
   const loading = tripQuery.isPending || daysQuery.isPending || itemsQuery.isPending;
@@ -58,6 +91,41 @@ export default function DayDetailScreen() {
     });
   };
 
+  const showWriteError = (err: Error, fallbackKey: 'item.reorderError' | 'item.moveError', logTag: string) => {
+    if (err instanceof NoRowsAffectedError) {
+      Alert.alert(t('auth.error'), t('common.noPermission'));
+    } else {
+      console.error(logTag, err);
+      Alert.alert(t('auth.error'), t(fallbackKey));
+    }
+  };
+
+  const handleReorder = ({ from, to }: ReorderableListReorderEvent) => {
+    if (from === to) return;
+    const next = reorderItems(items, from, to);
+    // Timed plans can't pass each other: snap the list back and explain briefly.
+    if (!isValidDayOrder(next)) {
+      restoreOffset.current = scrollY.get();
+      setListKey((key) => key + 1);
+      showToast({ title: t('item.reorderTimedTitle'), description: t('item.reorderTimedBlocked'), icon: 'clock' });
+      return;
+    }
+    const updates = renumberDayItems(next);
+    if (updates.length === 0) return;
+    reorder.mutate(updates, {
+      onError: (err) => showWriteError(err, 'item.reorderError', 'REORDER_TRIP_ITEMS_ERROR'),
+    });
+  };
+
+  const handleMoveToDay = (toDay: TripDay) => {
+    const item = movingItem;
+    setMovingItem(null);
+    if (!item || !day || toDay.id === day.id) return;
+    moveItem.move(
+      { item, fromDay: day, toDay },
+      { onError: (err) => showWriteError(err, 'item.moveError', 'MOVE_TRIP_ITEM_ERROR') }
+    );
+  };
 
   const renderHeader = () => {
     if (!trip || !day) return null;
@@ -102,6 +170,11 @@ export default function DayDetailScreen() {
 
         <View style={[styles.plansHeader, { borderBottomColor: theme.border }]}>
           <ThemedText type="subtitle">{t('item.plans')}</ThemedText>
+          {canEdit && items.length > 1 && (
+            <ThemedText style={styles.reorderHint} type="small" themeColor="textSecondary">
+              {t('item.reorderHint')}
+            </ThemedText>
+          )}
         </View>
       </View>
     );
@@ -153,15 +226,21 @@ export default function DayDetailScreen() {
     <Screen safeArea="bottom" padded={false}>
       <Stack.Screen options={{ title: `${t('trip.day')} ${day.day_number}` }} />
       <View style={styles.container}>
-        <FlatList
+        <ReorderableList
+          key={listKey}
+          ref={listRef}
+          onScroll={onListScroll}
           data={items}
           keyExtractor={(item) => item.id}
+          onReorder={handleReorder}
+          dragEnabled={canEdit}
           renderItem={({ item }) => (
-            <TripItemCard
+            <ReorderablePlanItem
               item={item}
               canEdit={canEdit}
               onEdit={(i) => router.push(`/trips/${id}/days/${dayId}/items/${i.id}/edit`)}
               onDelete={handleDeleteItem}
+              onMove={days.length > 1 ? setMovingItem : undefined}
               onShowMap={(i) => router.push(`/trips/${id}/days/${dayId}/map?focusItemId=${i.id}`)}
             />
           )}
@@ -169,6 +248,18 @@ export default function DayDetailScreen() {
           ListEmptyComponent={renderEmptyComponent}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+        />
+
+        {/* Sits above the bottom "Add plan" bar */}
+        <Toast toast={toast} bottom={canEdit && items.length > 0 ? 96 : 24} />
+
+        <DayPickerModal
+          visible={movingItem !== null}
+          title={t('item.moveTitle')}
+          days={days}
+          disabledDayId={dayId}
+          onSelect={handleMoveToDay}
+          onClose={() => setMovingItem(null)}
         />
         
         {canEdit && items.length > 0 && (
@@ -235,6 +326,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     borderBottomWidth: 1,
     marginBottom: 16,
+  },
+  reorderHint: {
+    marginTop: 2,
   },
   emptyContainer: {
     padding: 32,

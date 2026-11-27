@@ -9,6 +9,8 @@
  */
 // Import from subpaths: Metro does not tree-shake, so `from 'date-fns'` would
 // bundle the whole library (~300 modules).
+import { addDays } from 'date-fns/addDays';
+import { differenceInCalendarDays } from 'date-fns/differenceInCalendarDays';
 import { format } from 'date-fns/format';
 import { isValid } from 'date-fns/isValid';
 import { parse } from 'date-fns/parse';
@@ -68,4 +70,15 @@ export function parseTime(time: string, baseDate: Date = new Date()): Date {
 /** Day (`YYYY-MM-DD`) + time (`HH:mm`) in local time → ISO timestamp for the database. */
 export function combineDayAndTime(day: string, time: string): string {
   return parseTime(time, parseDayDate(day)).toISOString();
+}
+
+/**
+ * Move a plan's timestamp from one day to another, keeping the time of day
+ * (and an end time that runs past midnight stays on the following day).
+ */
+export function shiftToDay(iso: string | null, fromDay: string, toDay: string): string | null {
+  if (!iso) return null;
+  const date = parseISO(iso);
+  if (!isValid(date)) return iso;
+  return addDays(date, differenceInCalendarDays(parseDayDate(toDay), parseDayDate(fromDay))).toISOString();
 }
