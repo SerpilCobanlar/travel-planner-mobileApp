@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { useTranslation } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { useRefreshOnFocus } from '@/hooks/use-refresh-on-focus';
-import { Trip, useTrips } from '@/lib/queries/trips';
+import { TripListItem, useTrips } from '@/lib/queries/trips';
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<'my_trips' | 'public_trips'>('my_trips');
@@ -25,8 +25,13 @@ export default function HomeScreen() {
   const error = tripsQuery.error ? tripsQuery.error.message : null;
   useRefreshOnFocus(tripsQuery.refetch);
 
-  const renderTrip = ({ item }: { item: Trip }) => (
-    <TripCard trip={item} onPress={() => router.push(`/trips/${item.id}`)} />
+  // Shared trips (someone else's) show "@owner"; my own trips don't.
+  const renderTrip = ({ item }: { item: TripListItem }) => (
+    <TripCard
+      trip={item}
+      ownerUsername={item.owner_id !== user?.id ? item.ownerUsername : null}
+      onPress={() => router.push(`/trips/${item.id}`)}
+    />
   );
 
   const renderEmptyComponent = () => {

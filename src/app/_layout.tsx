@@ -55,6 +55,7 @@ function RootLayoutNav() {
           <Stack.Screen name="trips/new" />
           <Stack.Screen name="trips/[id]" />
           <Stack.Screen name="trips/[id]/edit" />
+          <Stack.Screen name="trips/[id]/members/index" />
           <Stack.Screen name="trips/[id]/members/invite" />
           <Stack.Screen name="trips/[id]/days/[dayId]" />
           <Stack.Screen name="trips/[id]/days/[dayId]/map" />

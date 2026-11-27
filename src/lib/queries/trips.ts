@@ -38,20 +38,33 @@ export class NoRowsAffectedError extends Error {
 
 // ---------- Fetchers ----------
 
-async function fetchTrips(kind: TripListKind, userId: string | undefined): Promise<Trip[]> {
-  let query = supabase.from('trips').select('*');
+/** A trip row plus its owner's username (for "@owner" on shared/public trip cards). */
+export type TripListItem = Trip & { ownerUsername: string | null };
+
+async function fetchTrips(kind: TripListKind, userId: string | undefined): Promise<TripListItem[]> {
+  const ownerSelect = 'owner:profiles!trips_owner_id_fkey(username)';
 
   if (kind === 'mine') {
     if (!userId) return [];
-    query = query.eq('owner_id', userId);
-  } else {
-    query = query.eq('is_public', true);
-    if (userId) query = query.neq('owner_id', userId);
+    // Every trip I'm a member of. The owner is a member too (handle_new_trip_owner),
+    // so this covers my own trips and trips shared with me (#17).
+    const { data, error } = await supabase
+      .from('trips')
+      .select(`*, ${ownerSelect}, trip_members!inner(user_id)`)
+      .eq('trip_members.user_id', userId)
+      .order('start_date', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(({ owner, trip_members: _members, ...trip }) => ({
+      ...trip,
+      ownerUsername: owner?.username ?? null,
+    }));
   }
 
+  let query = supabase.from('trips').select(`*, ${ownerSelect}`).eq('is_public', true);
+  if (userId) query = query.neq('owner_id', userId);
   const { data, error } = await query.order('start_date', { ascending: true });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map(({ owner, ...trip }) => ({ ...trip, ownerUsername: owner?.username ?? null }));
 }
 
 async function fetchTrip(tripId: string): Promise<Trip> {

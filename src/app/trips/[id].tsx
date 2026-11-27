@@ -16,7 +16,7 @@ import {
   useTripDays,
   useTripItems,
 } from '@/lib/queries/trips';
-import { memberErrorKey, useLeaveTrip } from '@/lib/queries/members';
+import { memberErrorKey, useLeaveTrip, useTripMembers } from '@/lib/queries/members';
 import TripDayCard from '@/components/TripDayCard';
 import { Button } from '@/components/ui/Button';
 
@@ -33,6 +33,7 @@ export default function TripDetailScreen() {
   const roleQuery = useMyTripRole(id, user?.id);
   const deleteTrip = useDeleteTrip();
   const leaveTrip = useLeaveTrip(id);
+  const membersQuery = useTripMembers(roleQuery.data ? id : undefined);
 
   const trip = tripQuery.data ?? null;
   const days = daysQuery.data ?? [];
@@ -97,10 +98,11 @@ export default function TripDetailScreen() {
           </View>
         )}
 
-        {role === 'owner' && (
+        {/* Any member can see who's on the trip; inviting/managing happens on that screen (owner). */}
+        {role !== null && (
           <Button
-            title={t('members.inviteButton')}
-            onPress={() => router.push(`/trips/${id}/members/invite`)}
+            title={t('members.membersButton').replace('{count}', String(membersQuery.data?.length ?? '…'))}
+            onPress={() => router.push(`/trips/${id}/members`)}
             style={styles.memberButton}
             variant="outline"
             icon="person.fill"
