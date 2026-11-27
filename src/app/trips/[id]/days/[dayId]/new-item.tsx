@@ -44,7 +44,6 @@ export default function AddTripItemScreen() {
       trip_id: id,
       trip_day_id: dayId,
       sort_order: last.length > 0 ? last[0].sort_order + 1 : 0,
-      details: {},
     });
 
     if (insertError) {

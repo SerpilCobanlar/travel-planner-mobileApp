@@ -6,6 +6,7 @@ import type { Database } from '@/types/database.types';
 import { useTranslation, TranslationKey } from '@/localization';
 import { useTheme } from '@/hooks/use-theme';
 import { formatTimeRange } from '@/lib/date';
+import { readPlace } from '@/lib/validation/tripItem';
 
 type TripItem = Database['public']['Tables']['trip_items']['Row'];
 
@@ -87,8 +88,8 @@ export default function TripItemCard({ item, canEdit, onEdit, onDelete, onShowMa
           <View style={styles.footerLeft}>
             {item.latitude !== null && item.longitude !== null && (
               <View style={[styles.badge, { backgroundColor: theme.primary + '10' }]}>
-                <ThemedText style={[styles.badgeText, { color: theme.primary }]}>
-                  📍 {t('item.locationAdded')}
+                <ThemedText style={[styles.badgeText, { color: theme.primary }]} numberOfLines={1}>
+                  📍 {readPlace(item.details)?.name ?? t('item.locationAdded')}
                 </ThemedText>
               </View>
             )}
@@ -182,6 +183,7 @@ const styles = StyleSheet.create({
   },
   footerLeft: {
     marginRight: 8,
+    flexShrink: 1,
   },
   titleRow: {
     flexDirection: 'row',
