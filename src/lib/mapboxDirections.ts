@@ -1,5 +1,17 @@
 export type DirectionProfile = 'walking' | 'driving';
 
+/**
+ * Mapbox routing profile per app profile. Car routes use `driving-traffic`:
+ * the plain `driving` profile sent cars the wrong way down a one-way street
+ * (#49), while `driving-traffic` uses fresher road data and respects it.
+ * Both accept up to 25 coordinates.
+ * https://docs.mapbox.com/api/navigation/directions/#routing-profiles
+ */
+const MAPBOX_PROFILE: Record<DirectionProfile, string> = {
+  walking: 'mapbox/walking',
+  driving: 'mapbox/driving-traffic',
+};
+
 export interface RouteGeometry {
   type: 'LineString';
   coordinates: [number, number][];
@@ -27,7 +39,7 @@ export async function fetchDirections(
 
   // format coordinates: lng,lat;lng,lat
   const coordString = coordinates.map((c) => `${c[0]},${c[1]}`).join(';');
-  const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordString}?geometries=geojson&overview=full&steps=false&alternatives=false&access_token=${token}`;
+  const url = `https://api.mapbox.com/directions/v5/${MAPBOX_PROFILE[profile]}/${coordString}?geometries=geojson&overview=full&steps=false&alternatives=false&access_token=${token}`;
 
   try {
     const response = await fetch(url);
